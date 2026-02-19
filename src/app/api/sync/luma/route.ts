@@ -2,7 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServiceClient } from "@/lib/supabase";
 import { fetchLumaEvents, lumaToEvent } from "@/lib/luma";
 
+// Vercel Cron sends GET, manual triggers use POST
+export async function GET(req: NextRequest) {
+  return handleSync(req);
+}
+
 export async function POST(req: NextRequest) {
+  return handleSync(req);
+}
+
+async function handleSync(req: NextRequest) {
   // Verify cron secret
   const authHeader = req.headers.get("authorization");
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {

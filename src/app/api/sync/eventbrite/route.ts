@@ -2,7 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServiceClient } from "@/lib/supabase";
 import { fetchEventbriteEvents } from "@/lib/eventbrite";
 
+// Vercel Cron sends GET, manual triggers use POST
+export async function GET(req: NextRequest) {
+  return handleSync(req);
+}
+
 export async function POST(req: NextRequest) {
+  return handleSync(req);
+}
+
+async function handleSync(req: NextRequest) {
   const authHeader = req.headers.get("authorization");
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
