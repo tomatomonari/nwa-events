@@ -60,9 +60,10 @@ export async function fetchLumaEvents(): Promise<LumaEventWithHost[]> {
       }
 
       const pageData = JSON.parse(jsonMatch[1]);
-      const calendarData = pageData?.props?.pageProps?.initialData?.data?.calendar;
+      const pageDataRoot = pageData?.props?.pageProps?.initialData?.data;
 
-      const items = calendarData?.featured_items || calendarData?.entries || [];
+      // featured_items is a sibling of calendar, not inside it
+      const items = pageDataRoot?.featured_items || [];
 
       if (items.length === 0) {
         console.error(`No events found in Luma calendar: ${calendarSlug}`);
