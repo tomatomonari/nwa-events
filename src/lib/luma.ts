@@ -29,43 +29,54 @@ export interface LumaEventWithHost {
   hosts: LumaHost[];
 }
 
-const LUMA_API_BASE = "https://api.lu.ma/public/v1";
-
-// NWA-area calendar/community IDs to sync from
-// These need to be configured with real Luma calendar IDs
-const NWA_CALENDARS = process.env.LUMA_NWA_CALENDARS?.split(",") || [];
+// NWA-area Luma calendar URLs to sync from
+// Format: comma-separated list of Luma calendar slugs (e.g., "onwardfx,StartupJunkie")
+const NWA_CALENDARS = (process.env.LUMA_NWA_CALENDARS || "onwardfx,StartupJunkie").split(",");
 
 export async function fetchLumaEvents(): Promise<LumaEventWithHost[]> {
-  const apiKey = process.env.LUMA_API_KEY;
-  if (!apiKey) throw new Error("LUMA_API_KEY not configured");
-
   const results: LumaEventWithHost[] = [];
 
-  for (const calendarId of NWA_CALENDARS) {
+  for (const calendarSlug of NWA_CALENDARS) {
     try {
-      const res = await fetch(
-        `${LUMA_API_BASE}/calendar/get-items?calendar_api_id=${calendarId.trim()}`,
-        {
-          headers: { "x-luma-api-key": apiKey },
-        }
-      );
+      const url = `https://lu.ma/${calendarSlug.trim()}`;
+      const res = await fetch(url, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (compatible; NWAEvents/1.0; +https://nwa.events)",
+        },
+      });
 
       if (!res.ok) {
-        console.error(`Luma API error for calendar ${calendarId}: ${res.status}`);
+        console.error(`Failed to fetch Luma calendar ${calendarSlug}: ${res.status}`);
         continue;
       }
 
-      const data = await res.json();
+      const html = await res.text();
 
-      if (data.entries) {
-        for (const entry of data.entries) {
+      // Luma embeds event data in a JSON script tag
+      const jsonMatch = html.match(/<script id="__NEXT_DATA__" type="application\/json">(.*?)<\/script>/s);
+      if (!jsonMatch) {
+        console.error(`Could not find event data in Luma page: ${calendarSlug}`);
+        continue;
+      }
+
+      const pageData = JSON.parse(jsonMatch[1]);
+      const calendarData = pageData?.props?.pageProps?.initialData?.calendar;
+
+      if (!calendarData?.entries) {
+        console.error(`No entries found in Luma calendar: ${calendarSlug}`);
+        continue;
+      }
+
+      // Parse events from calendar entries
+      for (const entry of calendarData.entries) {
+        if (entry.event) {
           const event = entry.event as LumaEvent;
           const hosts = (entry.hosts || []) as LumaHost[];
           results.push({ event, hosts });
         }
       }
     } catch (err) {
-      console.error(`Failed to fetch Luma calendar ${calendarId}:`, err);
+      console.error(`Failed to scrape Luma calendar ${calendarSlug}:`, err);
     }
   }
 
