@@ -40,11 +40,16 @@ export async function GET() {
       debug.push({
         step: "parsed_data",
         has_calendar: !!calendarData,
-        calendar_keys: calendarData ? Object.keys(calendarData).slice(0, 10) : null
+        all_calendar_keys: calendarData ? Object.keys(calendarData) : null
       });
 
       const items = calendarData?.featured_items || calendarData?.entries || [];
-      debug.push({ step: "items_found", count: items.length });
+      debug.push({
+        step: "items_check",
+        featured_items: calendarData?.featured_items ? calendarData.featured_items.length : "not found",
+        entries: calendarData?.entries ? calendarData.entries.length : "not found",
+        items_count: items.length
+      });
 
     } catch (err: any) {
       debug.push({ step: "error", error: err.message, stack: err.stack });
