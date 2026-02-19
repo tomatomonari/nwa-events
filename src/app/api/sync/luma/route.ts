@@ -20,10 +20,25 @@ export async function POST(req: NextRequest) {
     for (const item of lumaEvents) {
       const event = lumaToEvent(item);
 
-      const { error } = await supabase.from("events").upsert(event, {
-        onConflict: "source_platform,source_id",
-        ignoreDuplicates: false,
-      });
+      // Check if event already exists
+      const { data: existing } = await supabase
+        .from("events")
+        .select("id")
+        .eq("source_platform", event.source_platform)
+        .eq("source_id", event.source_id)
+        .maybeSingle();
+
+      let error;
+      if (existing) {
+        // Update existing event
+        ({ error } = await supabase
+          .from("events")
+          .update(event)
+          .eq("id", existing.id));
+      } else {
+        // Insert new event
+        ({ error } = await supabase.from("events").insert(event));
+      }
 
       if (error) {
         errors.push({ event_title: event.title, source_id: event.source_id, error });
