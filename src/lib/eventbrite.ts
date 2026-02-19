@@ -1,90 +1,117 @@
-interface EventbriteVenue {
-  name: string | null;
-  address?: {
-    localized_address_display?: string;
-    city?: string;
-    region?: string;
-  };
-}
-
-interface EventbriteEvent {
-  id: string;
-  name: { text: string };
-  description?: { text: string };
-  start: { utc: string };
-  end?: { utc: string };
-  url: string;
-  logo?: { url: string } | null;
-  venue_id?: string;
-  online_event: boolean;
-  organizer_id?: string;
-}
-
-interface EventbriteOrganizer {
-  name: string;
-  description?: { text: string };
-  logo?: { url: string } | null;
-}
-
 const EB_API_BASE = "https://www.eventbriteapi.com/v3";
 
-// NWA-area coordinates (centered around Bentonville)
-const NWA_LOCATION = {
-  latitude: "36.3729",
-  longitude: "-94.2088",
-  within: "30mi",
-};
+// NWA cities to search for events
+const NWA_QUERIES = [
+  "Bentonville Arkansas",
+  "Fayetteville Arkansas",
+  "Rogers Arkansas",
+  "Springdale Arkansas",
+];
+
+// Map Eventbrite tags to our categories
+function mapCategories(tags: any[]): string[] {
+  const categoryMap: Record<string, string> = {
+    "Business & Professional": "networking",
+    "Science & Technology": "tech",
+    "Community & Culture": "community",
+    "Education": "education",
+    "Career": "career",
+    "Startups & Small Business": "startup",
+    "Food & Drink": "community",
+    "Music": "community",
+    "Charity & Causes": "community",
+  };
+
+  const categories: string[] = [];
+  for (const tag of tags || []) {
+    if (tag.prefix === "EventbriteCategory" && tag.display_name) {
+      const mapped = categoryMap[tag.display_name];
+      if (mapped && !categories.includes(mapped)) {
+        categories.push(mapped);
+      }
+    }
+  }
+  return categories.length > 0 ? categories : ["other"];
+}
+
+function toISO(date: string, time: string, timezone: string): string {
+  return new Date(`${date}T${time}:00`).toISOString();
+}
 
 export async function fetchEventbriteEvents() {
   const token = process.env.EVENTBRITE_API_KEY;
   if (!token) throw new Error("EVENTBRITE_API_KEY not configured");
 
-  const headers = { Authorization: `Bearer ${token}` };
+  const headers = {
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "application/json",
+  };
 
-  // Search for events near NWA
-  const params = new URLSearchParams({
-    "location.latitude": NWA_LOCATION.latitude,
-    "location.longitude": NWA_LOCATION.longitude,
-    "location.within": NWA_LOCATION.within,
-    "start_date.range_start": new Date().toISOString().split(".")[0] + "Z",
-    sort_by: "date",
-    expand: "venue,organizer",
-  });
+  const seenIds = new Set<string>();
+  const results: any[] = [];
 
-  const res = await fetch(`${EB_API_BASE}/events/search/?${params}`, { headers });
+  for (const query of NWA_QUERIES) {
+    try {
+      const res = await fetch(`${EB_API_BASE}/destination/search/`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          event_search: {
+            dates: "current_future",
+            dedup: true,
+            q: query,
+            page: 1,
+            page_size: 20,
+          },
+          "expand.destination_event": [
+            "primary_venue",
+            "image",
+            "primary_organizer",
+          ],
+        }),
+      });
 
-  if (!res.ok) {
-    console.error(`Eventbrite API error: ${res.status}`);
-    return [];
+      if (!res.ok) {
+        console.error(`Eventbrite search error for "${query}": ${res.status}`);
+        continue;
+      }
+
+      const data = await res.json();
+      const events = data?.events?.results || [];
+
+      for (const e of events) {
+        // Dedupe across queries
+        if (seenIds.has(e.id)) continue;
+        seenIds.add(e.id);
+
+        results.push({
+          title: e.name,
+          description: (e.summary || e.full_description || "").slice(0, 2000) || null,
+          start_date: toISO(e.start_date, e.start_time, e.timezone),
+          end_date: e.end_date && e.end_time
+            ? toISO(e.end_date, e.end_time, e.timezone)
+            : null,
+          location_name: e.primary_venue?.name || null,
+          location_address:
+            e.primary_venue?.address?.localized_address_display || null,
+          is_online: e.is_online_event || false,
+          online_url: e.is_online_event ? e.url : null,
+          categories: mapCategories(e.tags),
+          image_url: e.image?.url || null,
+          source_url: e.url,
+          source_platform: "eventbrite",
+          source_id: e.id,
+          organizer_name: e.primary_organizer?.name || "Unknown",
+          organizer_title: null,
+          organizer_company: null,
+          organizer_avatar_url: null,
+          status: "approved",
+        });
+      }
+    } catch (err) {
+      console.error(`Failed to fetch Eventbrite events for "${query}":`, err);
+    }
   }
 
-  const data = await res.json();
-  return (data.events || []).map((event: EventbriteEvent & { venue?: EventbriteVenue; organizer?: EventbriteOrganizer }) =>
-    eventbriteToEvent(event)
-  );
-}
-
-function eventbriteToEvent(
-  event: EventbriteEvent & { venue?: EventbriteVenue; organizer?: EventbriteOrganizer }
-) {
-  return {
-    title: event.name.text,
-    description: event.description?.text?.slice(0, 2000) || null,
-    start_date: event.start.utc,
-    end_date: event.end?.utc || null,
-    location_name: event.venue?.name || null,
-    location_address: event.venue?.address?.localized_address_display || null,
-    is_online: event.online_event,
-    online_url: event.online_event ? event.url : null,
-    categories: [] as string[],
-    image_url: event.logo?.url || null,
-    source_url: event.url,
-    source_platform: "eventbrite",
-    source_id: event.id,
-    organizer_name: event.organizer?.name || "Unknown",
-    organizer_title: null,
-    organizer_company: null,
-    organizer_avatar_url: event.organizer?.logo?.url || null,
-    status: "approved",
-  };
+  return results;
 }
