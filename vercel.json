@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/sync/luma",
+      "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/sync/eventbrite",
+      "schedule": "0 7 * * *"
+    }
+  ]
+}
