@@ -15,6 +15,7 @@ export async function POST(req: NextRequest) {
 
     let synced = 0;
     let skipped = 0;
+    const errors: any[] = [];
 
     for (const item of lumaEvents) {
       const event = lumaToEvent(item);
@@ -25,7 +26,7 @@ export async function POST(req: NextRequest) {
       });
 
       if (error) {
-        console.error(`Failed to upsert Luma event ${event.source_id}:`, error);
+        errors.push({ event_title: event.title, source_id: event.source_id, error });
         skipped++;
       } else {
         synced++;
@@ -36,6 +37,7 @@ export async function POST(req: NextRequest) {
       message: `Synced ${synced} events, skipped ${skipped}`,
       synced,
       skipped,
+      errors: errors.length > 0 ? errors : undefined,
     });
   } catch (error) {
     console.error("Luma sync error:", error);
