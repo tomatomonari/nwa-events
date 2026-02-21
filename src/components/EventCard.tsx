@@ -12,16 +12,6 @@ export default function EventCard({ event }: EventCardProps) {
   return (
     <Link href={`/events/${event.id}`} className="block group">
       <article className="rounded-xl border border-border bg-background p-5 hover:shadow-md hover:border-border/80 transition-all duration-200">
-        {event.image_url && (
-          <div className="relative w-full h-40 rounded-lg overflow-hidden mb-4 bg-muted">
-            <img
-              src={event.image_url}
-              alt={event.title}
-              className="w-full h-full object-cover"
-            />
-          </div>
-        )}
-
         <div className="flex items-start gap-4">
           {/* Date block */}
           <div className="flex-shrink-0 text-center min-w-[3rem]">
