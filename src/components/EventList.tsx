@@ -61,7 +61,15 @@ export default function EventList({ events }: EventListProps) {
 
   return (
     <div>
-      <div className="mb-8">
+      <div className="flex items-start justify-between mb-10">
+        <div>
+          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">
+            What&apos;s happening in NWA
+          </h1>
+          <p className="mt-2 text-muted-foreground text-lg">
+            Networking, tech, startups, career &mdash; all in one place.
+          </p>
+        </div>
         <CategoryFilter
           selected={selectedCategory}
           onChange={setSelectedCategory}
