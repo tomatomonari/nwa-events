@@ -16,7 +16,7 @@ export default function CategoryFilter({ selected, onChange, businessCount, funC
         onClick={() => onChange(selected === "business" ? null : "business")}
         className={`flex-1 flex items-center gap-3 px-4 py-3 rounded-xl border cursor-pointer transition-all duration-200 ${
           selected === "business"
-            ? "border-accent bg-accent text-white"
+            ? "border-[#d97757] bg-[#d97757] text-white"
             : "border-border hover:border-border/80 hover:shadow-sm"
         }`}
       >
@@ -40,7 +40,7 @@ export default function CategoryFilter({ selected, onChange, businessCount, funC
         onClick={() => onChange(selected === "fun" ? null : "fun")}
         className={`flex-1 flex items-center gap-3 px-4 py-3 rounded-xl border cursor-pointer transition-all duration-200 ${
           selected === "fun"
-            ? "border-accent bg-accent text-white"
+            ? "border-[#d97757] bg-[#d97757] text-white"
             : "border-border hover:border-border/80 hover:shadow-sm"
         }`}
       >
