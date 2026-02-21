@@ -49,7 +49,7 @@ export default function CategoryFilter({ selected, onChange, businessCount, funC
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg border border-border bg-background hover:bg-muted cursor-pointer transition-colors"
+        className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg border border-border bg-background hover:bg-muted cursor-pointer transition-colors"
       >
         {triggerIcon}
         {label}
@@ -65,10 +65,10 @@ export default function CategoryFilter({ selected, onChange, businessCount, funC
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-1 w-48 rounded-lg border border-border bg-background shadow-lg z-50 py-1">
+        <div className="absolute right-0 mt-1 w-48 rounded-lg border border-border bg-background shadow-lg z-50 py-1.5">
           <button
             onClick={() => select(null)}
-            className={`w-full text-left px-3 py-2 text-sm cursor-pointer transition-colors ${
+            className={`w-full text-left px-3 py-2.5 text-sm cursor-pointer transition-colors ${
               selected === null ? "font-semibold text-foreground bg-muted" : "text-muted-foreground hover:bg-muted hover:text-foreground"
             }`}
           >
@@ -76,7 +76,7 @@ export default function CategoryFilter({ selected, onChange, businessCount, funC
           </button>
           <button
             onClick={() => select("business")}
-            className={`w-full text-left px-3 py-2 text-sm cursor-pointer transition-colors flex items-center justify-between ${
+            className={`w-full text-left px-3 py-2.5 text-sm cursor-pointer transition-colors flex items-center justify-between ${
               selected === "business" ? "font-semibold text-foreground bg-muted" : "text-muted-foreground hover:bg-muted hover:text-foreground"
             }`}
           >
@@ -85,7 +85,7 @@ export default function CategoryFilter({ selected, onChange, businessCount, funC
           </button>
           <button
             onClick={() => select("fun")}
-            className={`w-full text-left px-3 py-2 text-sm cursor-pointer transition-colors flex items-center justify-between ${
+            className={`w-full text-left px-3 py-2.5 text-sm cursor-pointer transition-colors flex items-center justify-between ${
               selected === "fun" ? "font-semibold text-foreground bg-muted" : "text-muted-foreground hover:bg-muted hover:text-foreground"
             }`}
           >
