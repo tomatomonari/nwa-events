@@ -47,7 +47,7 @@ function EventGroup({ title, events }: { title: string; events: Event[] }) {
 }
 
 export default function EventList({ events }: EventListProps) {
-  const [selectedCategory, setSelectedCategory] = useState<PrimaryCategory | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<PrimaryCategory | null>("business");
 
   const businessCount = useMemo(() => events.filter((e) => e.primary_category === "business").length, [events]);
   const funCount = useMemo(() => events.filter((e) => e.primary_category === "fun").length, [events]);
