@@ -67,7 +67,11 @@ export default function EventList({ events }: EventListProps) {
             What&apos;s happening in NWA
           </h1>
           <p className="mt-2 text-muted-foreground text-lg">
-            Networking, tech, startups, career &mdash; all in one place.
+            {selectedCategory === "fun"
+              ? "Live music, food, art, outdoors \u2014 the good stuff."
+              : selectedCategory === "business"
+                ? "Networking, tech, startups, career \u2014 all in one place."
+                : "Everything happening around Northwest Arkansas."}
           </p>
         </div>
         <CategoryFilter
