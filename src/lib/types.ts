@@ -1,3 +1,5 @@
+export type PrimaryCategory = "business" | "fun";
+
 export interface Event {
   id: string;
   title: string;
@@ -9,6 +11,7 @@ export interface Event {
   is_online: boolean;
   online_url: string | null;
   categories: string[];
+  primary_category: PrimaryCategory;
   image_url: string | null;
   source_url: string | null;
   source_platform: string | null;

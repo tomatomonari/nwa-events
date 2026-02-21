@@ -44,6 +44,7 @@ export async function POST(req: NextRequest) {
       is_online: body.is_online || false,
       online_url: body.online_url || null,
       categories: body.categories || [],
+      primary_category: body.primary_category || "fun",
       image_url: body.image_url || null,
       source_url: body.source_url || null,
       source_platform: body.source_platform || null,

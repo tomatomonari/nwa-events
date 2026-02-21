@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { isToday, isThisWeek, isAfter, endOfWeek } from "date-fns";
-import type { Event } from "@/lib/types";
+import type { Event, PrimaryCategory } from "@/lib/types";
 import EventCard from "./EventCard";
 import CategoryFilter from "./CategoryFilter";
 
@@ -47,11 +47,14 @@ function EventGroup({ title, events }: { title: string; events: Event[] }) {
 }
 
 export default function EventList({ events }: EventListProps) {
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<PrimaryCategory | null>(null);
+
+  const businessCount = useMemo(() => events.filter((e) => e.primary_category === "business").length, [events]);
+  const funCount = useMemo(() => events.filter((e) => e.primary_category === "fun").length, [events]);
 
   const filtered = useMemo(() => {
     if (!selectedCategory) return events;
-    return events.filter((e) => e.categories.includes(selectedCategory));
+    return events.filter((e) => e.primary_category === selectedCategory);
   }, [events, selectedCategory]);
 
   const { today, thisWeek, later } = useMemo(() => groupEvents(filtered), [filtered]);
@@ -59,7 +62,12 @@ export default function EventList({ events }: EventListProps) {
   return (
     <div>
       <div className="mb-8">
-        <CategoryFilter selected={selectedCategory} onChange={setSelectedCategory} />
+        <CategoryFilter
+          selected={selectedCategory}
+          onChange={setSelectedCategory}
+          businessCount={businessCount}
+          funCount={funCount}
+        />
       </div>
 
       {filtered.length === 0 ? (

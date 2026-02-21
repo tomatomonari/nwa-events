@@ -8,6 +8,23 @@ const NWA_QUERIES = [
   "Springdale Arkansas",
 ];
 
+const BUSINESS_TAGS = new Set([
+  "Business & Professional",
+  "Science & Technology",
+  "Startups & Small Business",
+  "Career",
+  "Education",
+]);
+
+function classifyPrimaryCategory(tags: any[]): "business" | "fun" {
+  for (const tag of tags || []) {
+    if (tag.prefix === "EventbriteCategory" && BUSINESS_TAGS.has(tag.display_name)) {
+      return "business";
+    }
+  }
+  return "fun";
+}
+
 // Map Eventbrite tags to our categories
 function mapCategories(tags: any[]): string[] {
   const categoryMap: Record<string, string> = {
@@ -97,6 +114,7 @@ export async function fetchEventbriteEvents() {
           is_online: e.is_online_event || false,
           online_url: e.is_online_event ? e.url : null,
           categories: mapCategories(e.tags),
+          primary_category: classifyPrimaryCategory(e.tags),
           image_url: e.image?.url || null,
           source_url: e.url,
           source_platform: "eventbrite",

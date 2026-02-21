@@ -12,6 +12,7 @@ export interface ParsedEvent {
   is_online: boolean;
   online_url: string | null;
   categories: string[];
+  primary_category: "business" | "fun";
   image_url: string | null;
   organizer_name: string;
   organizer_title: string | null;
@@ -31,6 +32,7 @@ Return a JSON object with these exact fields:
 - is_online (boolean)
 - online_url (string or null — link to join if online)
 - categories (array of strings from: networking, product, startup, tech, career, community, education, other)
+- primary_category (string — either "business" or "fun". Use "business" for professional, networking, tech, career, startup, or educational events. Use "fun" for entertainment, social, food, music, arts, or community events)
 - image_url (string or null — event banner/cover image URL)
 - organizer_name (string, required — who is hosting)
 - organizer_title (string or null — their job title)

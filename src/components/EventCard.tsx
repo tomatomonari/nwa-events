@@ -88,19 +88,18 @@ export default function EventCard({ event }: EventCardProps) {
               </div>
             </div>
 
-            {/* Categories */}
-            {event.categories.length > 0 && (
-              <div className="mt-3 flex gap-1.5 flex-wrap">
-                {event.categories.map((cat) => (
-                  <span
-                    key={cat}
-                    className="px-2 py-0.5 text-xs rounded-full bg-muted text-muted-foreground"
-                  >
-                    {cat}
-                  </span>
-                ))}
-              </div>
-            )}
+            {/* Primary category badge */}
+            <div className="mt-3">
+              <span
+                className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+                  event.primary_category === "business"
+                    ? "bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
+                    : "bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300"
+                }`}
+              >
+                {event.primary_category === "business" ? "Business" : "Fun"}
+              </span>
+            </div>
           </div>
         </div>
       </article>

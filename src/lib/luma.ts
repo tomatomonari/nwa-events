@@ -112,6 +112,7 @@ export function lumaToEvent(item: LumaEventWithHost) {
     is_online: isOnline,
     online_url: event.meeting_url || null,
     categories: [] as string[],
+    primary_category: "business" as const,
     image_url: event.cover_url || null,
     source_url: `https://lu.ma/${event.url}`,
     source_platform: "luma",

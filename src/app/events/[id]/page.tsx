@@ -73,19 +73,18 @@ export default async function EventDetailPage({ params }: PageProps) {
         </div>
       )}
 
-      {/* Categories */}
-      {event.categories.length > 0 && (
-        <div className="flex gap-2 mb-4">
-          {event.categories.map((cat) => (
-            <span
-              key={cat}
-              className="px-2.5 py-1 text-xs font-medium rounded-full bg-muted text-muted-foreground"
-            >
-              {cat}
-            </span>
-          ))}
-        </div>
-      )}
+      {/* Primary category badge */}
+      <div className="flex gap-2 mb-4">
+        <span
+          className={`px-2.5 py-1 text-xs font-medium rounded-full ${
+            event.primary_category === "business"
+              ? "bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
+              : "bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300"
+          }`}
+        >
+          {event.primary_category === "business" ? "Business" : "Fun"}
+        </span>
+      </div>
 
       <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-4">
         {event.title}
