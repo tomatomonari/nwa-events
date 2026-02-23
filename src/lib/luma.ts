@@ -1,3 +1,5 @@
+import { extractSignals } from "./signals";
+
 interface LumaEvent {
   api_id: string;
   name: string;
@@ -121,6 +123,7 @@ export function lumaToEvent(item: LumaEventWithHost) {
     organizer_title: organizerTitle,
     organizer_company: organizerCompany,
     organizer_avatar_url: primaryHost?.avatar_url || null,
+    signals: extractSignals(event.description),
     status: "approved",
   };
 }

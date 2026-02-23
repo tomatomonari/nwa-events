@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import type { Event } from "@/lib/types";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { getSignalDef } from "@/lib/signals";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -73,18 +74,23 @@ export default async function EventDetailPage({ params }: PageProps) {
         </div>
       )}
 
-      {/* Primary category badge */}
-      <div className="flex gap-2 mb-4">
-        <span
-          className={`px-2.5 py-1 text-xs font-medium rounded-full ${
-            event.primary_category === "business"
-              ? "bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
-              : "bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300"
-          }`}
-        >
-          {event.primary_category === "business" ? "Business" : "Fun"}
-        </span>
-      </div>
+      {/* Signal badges */}
+      {event.signals?.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-4">
+          {event.signals.map((code) => {
+            const def = getSignalDef(code);
+            if (!def) return null;
+            return (
+              <span
+                key={code}
+                className={`px-2.5 py-1 text-xs font-medium rounded-full ${def.color}`}
+              >
+                {def.label}
+              </span>
+            );
+          })}
+        </div>
+      )}
 
       <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-4">
         {event.title}

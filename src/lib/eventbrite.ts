@@ -1,3 +1,5 @@
+import { extractSignals } from "./signals";
+
 const EB_API_BASE = "https://www.eventbriteapi.com/v3";
 
 // NWA cities to search for events
@@ -123,6 +125,7 @@ export async function fetchEventbriteEvents() {
           organizer_title: null,
           organizer_company: null,
           organizer_avatar_url: null,
+          signals: extractSignals((e.summary || e.full_description || "").slice(0, 2000) || null),
           status: "approved",
         });
       }

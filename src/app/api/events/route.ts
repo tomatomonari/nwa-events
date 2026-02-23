@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceClient } from "@/lib/supabase";
+import { extractSignals } from "@/lib/signals";
 
 function isAdmin(req: NextRequest) {
   return req.headers.get("x-admin-password") === process.env.ADMIN_PASSWORD;
@@ -53,6 +54,7 @@ export async function POST(req: NextRequest) {
       organizer_title: body.organizer_title || null,
       organizer_company: body.organizer_company || null,
       organizer_avatar_url: body.organizer_avatar_url || null,
+      signals: extractSignals(body.description || null),
       status: body.status || "pending",
     })
     .select()

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { format } from "date-fns";
 import type { Event } from "@/lib/types";
+import { getSignalDef } from "@/lib/signals";
 
 interface EventCardProps {
   event: Event;
@@ -78,18 +79,23 @@ export default function EventCard({ event }: EventCardProps) {
               </div>
             </div>
 
-            {/* Primary category badge */}
-            <div className="mt-3">
-              <span
-                className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-                  event.primary_category === "business"
-                    ? "bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
-                    : "bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300"
-                }`}
-              >
-                {event.primary_category === "business" ? "Business" : "Fun"}
-              </span>
-            </div>
+            {/* Signal badges */}
+            {event.signals?.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {event.signals.map((code) => {
+                  const def = getSignalDef(code);
+                  if (!def) return null;
+                  return (
+                    <span
+                      key={code}
+                      className={`px-2 py-0.5 text-xs font-medium rounded-full ${def.color}`}
+                    >
+                      {def.label}
+                    </span>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       </article>
