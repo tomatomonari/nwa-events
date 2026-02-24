@@ -7,6 +7,10 @@
     {
       "path": "/api/sync/eventbrite",
       "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/sync/meetup",
+      "schedule": "0 8 * * *"
     }
   ]
 }
