@@ -1,0 +1,79 @@
+import { NextRequest, NextResponse } from "next/server";
+import { getServiceClient } from "@/lib/supabase";
+import { fetchMeetupEvents, meetupToEvent } from "@/lib/meetup";
+
+// Vercel Cron sends GET, manual triggers use POST
+export async function GET(req: NextRequest) {
+  return handleSync(req);
+}
+
+export async function POST(req: NextRequest) {
+  return handleSync(req);
+}
+
+async function handleSync(req: NextRequest) {
+  // Verify cron secret
+  const authHeader = req.headers.get("authorization");
+  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const meetupEvents = await fetchMeetupEvents();
+    const supabase = getServiceClient();
+
+    let synced = 0;
+    let skipped = 0;
+    const errors: any[] = [];
+
+    for (const item of meetupEvents) {
+      const event = meetupToEvent(item);
+
+      // Skip online-only events
+      if (event.is_online) {
+        skipped++;
+        continue;
+      }
+
+      // Check if event already exists
+      const { data: existing } = await supabase
+        .from("events")
+        .select("id")
+        .eq("source_platform", event.source_platform)
+        .eq("source_id", event.source_id)
+        .maybeSingle();
+
+      let error;
+      if (existing) {
+        // Update existing event
+        ({ error } = await supabase
+          .from("events")
+          .update(event)
+          .eq("id", existing.id));
+      } else {
+        // Insert new event
+        ({ error } = await supabase.from("events").insert(event));
+      }
+
+      if (error) {
+        errors.push({ event_title: event.title, source_id: event.source_id, error });
+        skipped++;
+      } else {
+        synced++;
+      }
+    }
+
+    return NextResponse.json({
+      message: `Synced ${synced} events, skipped ${skipped}`,
+      synced,
+      skipped,
+      errors: errors.length > 0 ? errors : undefined,
+    });
+  } catch (error) {
+    console.error("Meetup sync error:", error);
+    return NextResponse.json(
+      { error: "Sync failed" },
+      { status: 500 }
+    );
+  }
+}

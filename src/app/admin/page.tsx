@@ -12,6 +12,14 @@ interface LumaCalendar {
   created_at: string;
 }
 
+interface MeetupGroup {
+  id: string;
+  urlname: string;
+  name: string | null;
+  active: boolean;
+  created_at: string;
+}
+
 export default function AdminPage() {
   const [authenticated, setAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
@@ -25,6 +33,12 @@ export default function AdminPage() {
   const [calendarName, setCalendarName] = useState("");
   const [calendarLoading, setCalendarLoading] = useState(false);
 
+  // Meetup groups state
+  const [meetupGroups, setMeetupGroups] = useState<MeetupGroup[]>([]);
+  const [meetupUrlname, setMeetupUrlname] = useState("");
+  const [meetupName, setMeetupName] = useState("");
+  const [meetupLoading, setMeetupLoading] = useState(false);
+
   const fetchCalendars = useCallback(async () => {
     setCalendarLoading(true);
     try {
@@ -37,6 +51,21 @@ export default function AdminPage() {
       }
     } finally {
       setCalendarLoading(false);
+    }
+  }, [password]);
+
+  const fetchMeetupGroups = useCallback(async () => {
+    setMeetupLoading(true);
+    try {
+      const res = await fetch("/api/admin/meetup-groups", {
+        headers: { "x-admin-password": password },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setMeetupGroups(data.groups);
+      }
+    } finally {
+      setMeetupLoading(false);
     }
   }, [password]);
 
@@ -62,6 +91,10 @@ export default function AdminPage() {
   useEffect(() => {
     if (authenticated) fetchCalendars();
   }, [authenticated, fetchCalendars]);
+
+  useEffect(() => {
+    if (authenticated) fetchMeetupGroups();
+  }, [authenticated, fetchMeetupGroups]);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -132,6 +165,40 @@ export default function AdminPage() {
       body: JSON.stringify({ id }),
     });
     fetchCalendars();
+  }
+
+  async function addMeetupGroup(e: React.FormEvent) {
+    e.preventDefault();
+    if (!meetupUrlname.trim()) return;
+    const res = await fetch("/api/admin/meetup-groups", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-admin-password": password,
+      },
+      body: JSON.stringify({ urlname: meetupUrlname, name: meetupName || null }),
+    });
+    if (res.ok) {
+      setMeetupUrlname("");
+      setMeetupName("");
+      fetchMeetupGroups();
+    } else {
+      const data = await res.json();
+      alert(data.error || "Failed to add group");
+    }
+  }
+
+  async function deleteMeetupGroup(id: string) {
+    if (!confirm("Remove this Meetup group?")) return;
+    await fetch("/api/admin/meetup-groups", {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        "x-admin-password": password,
+      },
+      body: JSON.stringify({ id }),
+    });
+    fetchMeetupGroups();
   }
 
   if (!authenticated) {
@@ -286,6 +353,66 @@ export default function AdminPage() {
                 </div>
                 <button
                   onClick={() => deleteCalendar(cal.id)}
+                  className="px-3 py-1 text-xs font-medium rounded-lg bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Meetup Groups Section */}
+      <div className="mt-12 pt-8 border-t border-border">
+        <h2 className="text-lg font-bold mb-4">Meetup Groups</h2>
+
+        {/* Add group form */}
+        <form onSubmit={addMeetupGroup} className="flex gap-2 mb-4">
+          <input
+            type="text"
+            placeholder="URL name or Meetup URL"
+            value={meetupUrlname}
+            onChange={(e) => setMeetupUrlname(e.target.value)}
+            className="flex-1 px-3 py-2 text-sm rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-accent/30"
+          />
+          <input
+            type="text"
+            placeholder="Display name (optional)"
+            value={meetupName}
+            onChange={(e) => setMeetupName(e.target.value)}
+            className="flex-1 px-3 py-2 text-sm rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-accent/30"
+          />
+          <button
+            type="submit"
+            className="px-4 py-2 text-sm font-medium rounded-lg bg-accent text-white hover:bg-accent/90 transition-colors"
+          >
+            Add
+          </button>
+        </form>
+
+        {/* Group list */}
+        {meetupLoading ? (
+          <p className="text-muted-foreground text-sm">Loading...</p>
+        ) : meetupGroups.length === 0 ? (
+          <p className="text-muted-foreground text-sm">No Meetup groups configured.</p>
+        ) : (
+          <div className="space-y-2">
+            {meetupGroups.map((group) => (
+              <div
+                key={group.id}
+                className="flex items-center justify-between p-3 rounded-lg border border-border bg-background"
+              >
+                <div>
+                  <span className="font-medium text-sm">{group.urlname}</span>
+                  {group.name && (
+                    <span className="ml-2 text-sm text-muted-foreground">
+                      ({group.name})
+                    </span>
+                  )}
+                </div>
+                <button
+                  onClick={() => deleteMeetupGroup(group.id)}
                   className="px-3 py-1 text-xs font-medium rounded-lg bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
                 >
                   Remove
