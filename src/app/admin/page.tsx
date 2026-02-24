@@ -4,12 +4,41 @@ import { useState, useEffect, useCallback } from "react";
 import { format } from "date-fns";
 import type { Event } from "@/lib/types";
 
+interface LumaCalendar {
+  id: string;
+  slug: string;
+  name: string | null;
+  active: boolean;
+  created_at: string;
+}
+
 export default function AdminPage() {
   const [authenticated, setAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
   const [events, setEvents] = useState<Event[]>([]);
   const [filter, setFilter] = useState<"pending" | "approved" | "rejected">("pending");
   const [loading, setLoading] = useState(false);
+
+  // Calendars state
+  const [calendars, setCalendars] = useState<LumaCalendar[]>([]);
+  const [calendarSlug, setCalendarSlug] = useState("");
+  const [calendarName, setCalendarName] = useState("");
+  const [calendarLoading, setCalendarLoading] = useState(false);
+
+  const fetchCalendars = useCallback(async () => {
+    setCalendarLoading(true);
+    try {
+      const res = await fetch("/api/admin/calendars", {
+        headers: { "x-admin-password": password },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setCalendars(data.calendars);
+      }
+    } finally {
+      setCalendarLoading(false);
+    }
+  }, [password]);
 
   const fetchEvents = useCallback(async () => {
     setLoading(true);
@@ -29,6 +58,10 @@ export default function AdminPage() {
   useEffect(() => {
     if (authenticated) fetchEvents();
   }, [authenticated, filter, fetchEvents]);
+
+  useEffect(() => {
+    if (authenticated) fetchCalendars();
+  }, [authenticated, fetchCalendars]);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -65,6 +98,40 @@ export default function AdminPage() {
       body: JSON.stringify({ id: eventId }),
     });
     fetchEvents();
+  }
+
+  async function addCalendar(e: React.FormEvent) {
+    e.preventDefault();
+    if (!calendarSlug.trim()) return;
+    const res = await fetch("/api/admin/calendars", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-admin-password": password,
+      },
+      body: JSON.stringify({ slug: calendarSlug, name: calendarName || null }),
+    });
+    if (res.ok) {
+      setCalendarSlug("");
+      setCalendarName("");
+      fetchCalendars();
+    } else {
+      const data = await res.json();
+      alert(data.error || "Failed to add calendar");
+    }
+  }
+
+  async function deleteCalendar(id: string) {
+    if (!confirm("Remove this calendar?")) return;
+    await fetch("/api/admin/calendars", {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        "x-admin-password": password,
+      },
+      body: JSON.stringify({ id }),
+    });
+    fetchCalendars();
   }
 
   if (!authenticated) {
@@ -168,6 +235,66 @@ export default function AdminPage() {
           ))}
         </div>
       )}
+
+      {/* Luma Calendars Section */}
+      <div className="mt-12 pt-8 border-t border-border">
+        <h2 className="text-lg font-bold mb-4">Luma Calendars</h2>
+
+        {/* Add calendar form */}
+        <form onSubmit={addCalendar} className="flex gap-2 mb-4">
+          <input
+            type="text"
+            placeholder="Slug or Luma URL"
+            value={calendarSlug}
+            onChange={(e) => setCalendarSlug(e.target.value)}
+            className="flex-1 px-3 py-2 text-sm rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-accent/30"
+          />
+          <input
+            type="text"
+            placeholder="Display name (optional)"
+            value={calendarName}
+            onChange={(e) => setCalendarName(e.target.value)}
+            className="flex-1 px-3 py-2 text-sm rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-accent/30"
+          />
+          <button
+            type="submit"
+            className="px-4 py-2 text-sm font-medium rounded-lg bg-accent text-white hover:bg-accent/90 transition-colors"
+          >
+            Add
+          </button>
+        </form>
+
+        {/* Calendar list */}
+        {calendarLoading ? (
+          <p className="text-muted-foreground text-sm">Loading...</p>
+        ) : calendars.length === 0 ? (
+          <p className="text-muted-foreground text-sm">No calendars configured.</p>
+        ) : (
+          <div className="space-y-2">
+            {calendars.map((cal) => (
+              <div
+                key={cal.id}
+                className="flex items-center justify-between p-3 rounded-lg border border-border bg-background"
+              >
+                <div>
+                  <span className="font-medium text-sm">{cal.slug}</span>
+                  {cal.name && (
+                    <span className="ml-2 text-sm text-muted-foreground">
+                      ({cal.name})
+                    </span>
+                  )}
+                </div>
+                <button
+                  onClick={() => deleteCalendar(cal.id)}
+                  className="px-3 py-1 text-xs font-medium rounded-lg bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

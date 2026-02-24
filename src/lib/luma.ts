@@ -1,5 +1,6 @@
 import { extractCity } from "./city";
 import { extractSignals } from "./signals";
+import { getServiceClient } from "./supabase";
 
 interface LumaEvent {
   api_id: string;
@@ -32,14 +33,31 @@ export interface LumaEventWithHost {
   hosts: LumaHost[];
 }
 
-// NWA-area Luma calendar URLs to sync from
-// Format: comma-separated list of Luma calendar slugs (e.g., "onwardfx,StartupJunkie")
-const NWA_CALENDARS = (process.env.LUMA_NWA_CALENDARS || "onwardfx,StartupJunkie").split(",");
+// Fallback calendar slugs if DB table is empty
+const FALLBACK_CALENDARS = (process.env.LUMA_NWA_CALENDARS || "onwardfx,StartupJunkie").split(",");
+
+async function getCalendarSlugs(): Promise<string[]> {
+  try {
+    const supabase = getServiceClient();
+    const { data } = await supabase
+      .from("luma_calendars")
+      .select("slug")
+      .eq("active", true);
+
+    if (data && data.length > 0) {
+      return data.map((row) => row.slug);
+    }
+  } catch (err) {
+    console.error("Failed to fetch calendar slugs from DB, using fallback:", err);
+  }
+  return FALLBACK_CALENDARS;
+}
 
 export async function fetchLumaEvents(): Promise<LumaEventWithHost[]> {
   const results: LumaEventWithHost[] = [];
+  const calendarSlugs = await getCalendarSlugs();
 
-  for (const calendarSlug of NWA_CALENDARS) {
+  for (const calendarSlug of calendarSlugs) {
     try {
       const url = `https://luma.com/${calendarSlug.trim()}`;
       const res = await fetch(url, {
