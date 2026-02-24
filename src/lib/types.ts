@@ -20,6 +20,7 @@ export interface Event {
   organizer_title: string | null;
   organizer_company: string | null;
   organizer_avatar_url: string | null;
+  city: string | null;
   signals: string[];
   status: "approved" | "pending" | "rejected";
   created_at: string;

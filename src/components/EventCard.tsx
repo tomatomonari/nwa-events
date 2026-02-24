@@ -47,7 +47,11 @@ export default function EventCard({ event }: EventCardProps) {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
                 <span className="truncate">
-                  {event.is_online ? "Online" : event.location_name}
+                  {event.is_online
+                    ? "Online"
+                    : event.location_name && event.city
+                      ? `${event.location_name} · ${event.city}`
+                      : event.location_name || event.city}
                 </span>
               </div>
             )}

@@ -1,3 +1,4 @@
+import { extractCity } from "./city";
 import { extractSignals } from "./signals";
 
 const EB_API_BASE = "https://www.eventbriteapi.com/v3";
@@ -125,6 +126,10 @@ export async function fetchEventbriteEvents() {
           organizer_title: null,
           organizer_company: null,
           organizer_avatar_url: null,
+          city: extractCity(
+            e.primary_venue?.address?.localized_address_display || null,
+            e.primary_venue?.name || null
+          ),
           signals: extractSignals((e.summary || e.full_description || "").slice(0, 2000) || null),
           status: "approved",
         });

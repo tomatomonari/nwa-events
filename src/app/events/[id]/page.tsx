@@ -119,7 +119,11 @@ export default async function EventDetailPage({ params }: PageProps) {
             </svg>
             <div>
               <div className="font-medium">
-                {event.is_online ? "Online Event" : event.location_name}
+                {event.is_online
+                  ? "Online Event"
+                  : event.location_name && event.city
+                    ? `${event.location_name} · ${event.city}`
+                    : event.location_name || event.city}
               </div>
               {event.location_address && (
                 <div className="text-sm text-muted-foreground">

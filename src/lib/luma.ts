@@ -1,3 +1,4 @@
+import { extractCity } from "./city";
 import { extractSignals } from "./signals";
 
 interface LumaEvent {
@@ -123,6 +124,9 @@ export function lumaToEvent(item: LumaEventWithHost) {
     organizer_title: organizerTitle,
     organizer_company: organizerCompany,
     organizer_avatar_url: primaryHost?.avatar_url || null,
+    city: event.geo_address_json?.city
+      ? extractCity(event.geo_address_json.city, null)
+      : extractCity(event.geo_address_json?.full_address || null, null),
     signals: extractSignals(event.description),
     status: "approved",
   };

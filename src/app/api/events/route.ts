@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceClient } from "@/lib/supabase";
+import { extractCity } from "@/lib/city";
 import { extractSignals } from "@/lib/signals";
 
 function isAdmin(req: NextRequest) {
@@ -54,6 +55,7 @@ export async function POST(req: NextRequest) {
       organizer_title: body.organizer_title || null,
       organizer_company: body.organizer_company || null,
       organizer_avatar_url: body.organizer_avatar_url || null,
+      city: body.city || extractCity(body.location_address || null, body.location_name || null),
       signals: extractSignals(body.description || null),
       status: body.status || "pending",
     })

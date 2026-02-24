@@ -1,0 +1,46 @@
+import { createClient } from "@supabase/supabase-js";
+import { config } from "dotenv";
+import { resolve } from "path";
+import { extractCity } from "../src/lib/city";
+
+config({ path: resolve(__dirname, "../.env.local") });
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
+async function backfill() {
+  const { data: events, error } = await supabase
+    .from("events")
+    .select("id, location_name, location_address");
+
+  if (error) {
+    console.error("Failed to fetch events:", error);
+    return;
+  }
+
+  console.log(`Processing ${events.length} events...`);
+
+  let updated = 0;
+  for (const event of events) {
+    const city = extractCity(event.location_address, event.location_name);
+    if (!city) continue;
+
+    const { error: updateError } = await supabase
+      .from("events")
+      .update({ city })
+      .eq("id", event.id);
+
+    if (updateError) {
+      console.error(`Failed to update event ${event.id}:`, updateError);
+    } else {
+      updated++;
+      console.log(`  ${event.id}: ${city}`);
+    }
+  }
+
+  console.log(`Done! Updated ${updated}/${events.length} events with city.`);
+}
+
+backfill().catch(console.error);
