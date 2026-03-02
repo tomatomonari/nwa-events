@@ -1,30 +1,5 @@
 import { getServiceClient } from "./supabase";
 
-const RECURRING_KEYWORDS = [
-  "weekly",
-  "monthly",
-  "biweekly",
-  "bi-weekly",
-  "every monday",
-  "every tuesday",
-  "every wednesday",
-  "every thursday",
-  "every friday",
-  "every saturday",
-  "every sunday",
-  "recurring",
-  "meets every",
-  "held every",
-];
-
-export function detectRecurring(
-  title: string,
-  description: string | null
-): boolean {
-  const text = `${title} ${description || ""}`.toLowerCase();
-  return RECURRING_KEYWORDS.some((kw) => text.includes(kw));
-}
-
 /**
  * Mark events as recurring when 2+ events share the same (title, organizer_name).
  * Call this after each sync upsert loop.

@@ -1,5 +1,4 @@
 import { extractCity } from "./city";
-import { detectRecurring } from "./recurring";
 import { extractSignals } from "./signals";
 import { getServiceClient } from "./supabase";
 
@@ -202,7 +201,6 @@ export function meetupToEvent(item: MeetupEvent) {
       ? extractCity(item.venue.city, null)
       : extractCity(venueAddress, null),
     signals: extractSignals(item.description),
-    recurring: detectRecurring(item.title, item.description),
     status: "approved",
   };
 }

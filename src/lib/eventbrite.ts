@@ -1,5 +1,4 @@
 import { extractCity } from "./city";
-import { detectRecurring } from "./recurring";
 import { extractSignals } from "./signals";
 
 const EB_API_BASE = "https://www.eventbriteapi.com/v3";
@@ -132,7 +131,6 @@ export async function fetchEventbriteEvents() {
             e.primary_venue?.name || null
           ),
           signals: extractSignals((e.summary || e.full_description || "").slice(0, 2000) || null),
-          recurring: detectRecurring(e.name, e.summary || e.full_description || null),
           status: "approved",
         });
       }
