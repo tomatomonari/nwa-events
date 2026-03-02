@@ -30,6 +30,52 @@ function groupEvents(events: Event[]) {
   return { today, thisWeek, later };
 }
 
+const BUSINESS_SUBCATEGORIES = [
+  { label: "University", emoji: "🎓" },
+  { label: "Networking", emoji: "🤝" },
+  { label: "Startup", emoji: "🚀" },
+  { label: "Hackathon", emoji: "💻" },
+];
+
+const SUBCATEGORY_FILTERS: Record<string, (e: Event) => boolean> = {
+  University: (e) => e.source_platform === "hogsync",
+};
+
+function SubcategoryGrid({
+  selected,
+  onToggle,
+}: {
+  selected: string | null;
+  onToggle: (label: string) => void;
+}) {
+  return (
+    <div className="mb-10">
+      <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-4">
+        Browse by Category
+      </h2>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {BUSINESS_SUBCATEGORIES.map((sub) => {
+          const isSelected = selected === sub.label;
+          return (
+            <button
+              key={sub.label}
+              onClick={() => onToggle(sub.label)}
+              className={`flex items-center gap-3 px-4 py-3.5 rounded-xl border text-left cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 ${
+                isSelected
+                  ? "border-muted-foreground/40 bg-muted text-foreground"
+                  : "border-border bg-background hover:border-border/80"
+              }`}
+            >
+              <span className="text-2xl">{sub.emoji}</span>
+              <span className="font-medium text-sm">{sub.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function EventGroup({ title, events }: { title: string; events: Event[] }) {
   if (events.length === 0) return null;
   return (
@@ -48,14 +94,21 @@ function EventGroup({ title, events }: { title: string; events: Event[] }) {
 
 export default function EventList({ events }: EventListProps) {
   const [selectedCategory, setSelectedCategory] = useState<PrimaryCategory | null>("business");
+  const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null);
 
   const businessCount = useMemo(() => events.filter((e) => e.primary_category === "business").length, [events]);
   const funCount = useMemo(() => events.filter((e) => e.primary_category === "fun").length, [events]);
 
   const filtered = useMemo(() => {
-    if (!selectedCategory) return events;
-    return events.filter((e) => e.primary_category === selectedCategory);
-  }, [events, selectedCategory]);
+    let result = events;
+    if (selectedCategory) {
+      result = result.filter((e) => e.primary_category === selectedCategory);
+    }
+    if (selectedSubcategory && SUBCATEGORY_FILTERS[selectedSubcategory]) {
+      result = result.filter(SUBCATEGORY_FILTERS[selectedSubcategory]);
+    }
+    return result;
+  }, [events, selectedCategory, selectedSubcategory]);
 
   const { today, thisWeek, later } = useMemo(() => groupEvents(filtered), [filtered]);
 
@@ -81,6 +134,15 @@ export default function EventList({ events }: EventListProps) {
           funCount={funCount}
         />
       </div>
+
+      {selectedCategory === "business" && (
+        <SubcategoryGrid
+          selected={selectedSubcategory}
+          onToggle={(label) =>
+            setSelectedSubcategory((prev) => (prev === label ? null : label))
+          }
+        />
+      )}
 
       {filtered.length === 0 ? (
         <div className="text-center py-16">
