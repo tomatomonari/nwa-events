@@ -83,10 +83,15 @@ export default function EventCard({ event }: EventCardProps) {
               </div>
             </div>
 
-            {/* Signal badges */}
-            {event.signals?.length > 0 && (
+            {/* Signal & recurring badges */}
+            {(event.signals?.length > 0 || event.recurring) && (
               <div className="mt-3 flex flex-wrap gap-1.5">
-                {event.signals.map((code) => {
+                {event.recurring && (
+                  <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
+                    Recurring
+                  </span>
+                )}
+                {event.signals?.map((code) => {
                   const def = getSignalDef(code);
                   if (!def) return null;
                   return (

@@ -1,4 +1,5 @@
 import { extractCity } from "./city";
+import { detectRecurring } from "./recurring";
 import { extractSignals } from "./signals";
 import { getServiceClient } from "./supabase";
 
@@ -146,6 +147,7 @@ export function lumaToEvent(item: LumaEventWithHost) {
       ? extractCity(event.geo_address_json.city, null)
       : extractCity(event.geo_address_json?.full_address || null, null),
     signals: extractSignals(event.description),
+    recurring: detectRecurring(event.name, event.description),
     status: "approved",
   };
 }

@@ -1,4 +1,5 @@
 import { extractCity } from "./city";
+import { detectRecurring } from "./recurring";
 import { extractSignals } from "./signals";
 import { getServiceClient } from "./supabase";
 
@@ -187,6 +188,7 @@ export function hogsyncToEvent(item: HogSyncEvent) {
     organizer_avatar_url: null,
     city: extractCity(item.location, null) || "Fayetteville",
     signals: extractSignals(item.name),
+    recurring: detectRecurring(item.name, null),
     status: "approved",
   };
 }

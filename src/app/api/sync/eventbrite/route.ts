@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceClient } from "@/lib/supabase";
 import { fetchEventbriteEvents } from "@/lib/eventbrite";
+import { markDuplicatesRecurring } from "@/lib/recurring";
 
 // Vercel Cron sends GET, manual triggers use POST
 export async function GET(req: NextRequest) {
@@ -51,6 +52,9 @@ async function handleSync(req: NextRequest) {
         synced++;
       }
     }
+
+    // Mark duplicate title+organizer events as recurring
+    await markDuplicatesRecurring();
 
     return NextResponse.json({
       message: `Synced ${synced} events, skipped ${skipped}`,

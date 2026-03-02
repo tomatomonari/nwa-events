@@ -22,6 +22,7 @@ export interface Event {
   organizer_avatar_url: string | null;
   city: string | null;
   signals: string[];
+  recurring: boolean;
   status: "approved" | "pending" | "rejected";
   created_at: string;
   updated_at: string;
