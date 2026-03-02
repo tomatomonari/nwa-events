@@ -20,6 +20,14 @@ interface MeetupGroup {
   created_at: string;
 }
 
+interface HogSyncOrg {
+  id: string;
+  group_id: string;
+  name: string | null;
+  active: boolean;
+  created_at: string;
+}
+
 export default function AdminPage() {
   const [authenticated, setAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
@@ -38,6 +46,12 @@ export default function AdminPage() {
   const [meetupUrlname, setMeetupUrlname] = useState("");
   const [meetupName, setMeetupName] = useState("");
   const [meetupLoading, setMeetupLoading] = useState(false);
+
+  // HogSync orgs state
+  const [hogsyncOrgs, setHogsyncOrgs] = useState<HogSyncOrg[]>([]);
+  const [hogsyncGroupId, setHogsyncGroupId] = useState("");
+  const [hogsyncName, setHogsyncName] = useState("");
+  const [hogsyncLoading, setHogsyncLoading] = useState(false);
 
   const fetchCalendars = useCallback(async () => {
     setCalendarLoading(true);
@@ -69,6 +83,21 @@ export default function AdminPage() {
     }
   }, [password]);
 
+  const fetchHogsyncOrgs = useCallback(async () => {
+    setHogsyncLoading(true);
+    try {
+      const res = await fetch("/api/admin/hogsync-orgs", {
+        headers: { "x-admin-password": password },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setHogsyncOrgs(data.orgs);
+      }
+    } finally {
+      setHogsyncLoading(false);
+    }
+  }, [password]);
+
   const fetchEvents = useCallback(async () => {
     setLoading(true);
     try {
@@ -95,6 +124,10 @@ export default function AdminPage() {
   useEffect(() => {
     if (authenticated) fetchMeetupGroups();
   }, [authenticated, fetchMeetupGroups]);
+
+  useEffect(() => {
+    if (authenticated) fetchHogsyncOrgs();
+  }, [authenticated, fetchHogsyncOrgs]);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -199,6 +232,40 @@ export default function AdminPage() {
       body: JSON.stringify({ id }),
     });
     fetchMeetupGroups();
+  }
+
+  async function addHogsyncOrg(e: React.FormEvent) {
+    e.preventDefault();
+    if (!hogsyncGroupId.trim()) return;
+    const res = await fetch("/api/admin/hogsync-orgs", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-admin-password": password,
+      },
+      body: JSON.stringify({ group_id: hogsyncGroupId, name: hogsyncName || null }),
+    });
+    if (res.ok) {
+      setHogsyncGroupId("");
+      setHogsyncName("");
+      fetchHogsyncOrgs();
+    } else {
+      const data = await res.json();
+      alert(data.error || "Failed to add organization");
+    }
+  }
+
+  async function deleteHogsyncOrg(id: string) {
+    if (!confirm("Remove this HogSync organization?")) return;
+    await fetch("/api/admin/hogsync-orgs", {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        "x-admin-password": password,
+      },
+      body: JSON.stringify({ id }),
+    });
+    fetchHogsyncOrgs();
   }
 
   if (!authenticated) {
@@ -413,6 +480,66 @@ export default function AdminPage() {
                 </div>
                 <button
                   onClick={() => deleteMeetupGroup(group.id)}
+                  className="px-3 py-1 text-xs font-medium rounded-lg bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* HogSync Organizations Section */}
+      <div className="mt-12 pt-8 border-t border-border">
+        <h2 className="text-lg font-bold mb-4">HogSync Organizations</h2>
+
+        {/* Add org form */}
+        <form onSubmit={addHogsyncOrg} className="flex gap-2 mb-4">
+          <input
+            type="text"
+            placeholder="Group ID or HogSync URL"
+            value={hogsyncGroupId}
+            onChange={(e) => setHogsyncGroupId(e.target.value)}
+            className="flex-1 px-3 py-2 text-sm rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-accent/30"
+          />
+          <input
+            type="text"
+            placeholder="Display name (optional)"
+            value={hogsyncName}
+            onChange={(e) => setHogsyncName(e.target.value)}
+            className="flex-1 px-3 py-2 text-sm rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-accent/30"
+          />
+          <button
+            type="submit"
+            className="px-4 py-2 text-sm font-medium rounded-lg bg-accent text-white hover:bg-accent/90 transition-colors"
+          >
+            Add
+          </button>
+        </form>
+
+        {/* Org list */}
+        {hogsyncLoading ? (
+          <p className="text-muted-foreground text-sm">Loading...</p>
+        ) : hogsyncOrgs.length === 0 ? (
+          <p className="text-muted-foreground text-sm">No HogSync organizations configured.</p>
+        ) : (
+          <div className="space-y-2">
+            {hogsyncOrgs.map((org) => (
+              <div
+                key={org.id}
+                className="flex items-center justify-between p-3 rounded-lg border border-border bg-background"
+              >
+                <div>
+                  <span className="font-medium text-sm">{org.group_id}</span>
+                  {org.name && (
+                    <span className="ml-2 text-sm text-muted-foreground">
+                      ({org.name})
+                    </span>
+                  )}
+                </div>
+                <button
+                  onClick={() => deleteHogsyncOrg(org.id)}
                   className="px-3 py-1 text-xs font-medium rounded-lg bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
                 >
                   Remove
