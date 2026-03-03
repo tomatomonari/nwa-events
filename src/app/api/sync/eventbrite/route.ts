@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServiceClient } from "@/lib/supabase";
 import { fetchEventbriteEvents } from "@/lib/eventbrite";
+import { upsertEvents } from "@/lib/sync";
 import { markDuplicatesRecurring } from "@/lib/recurring";
 
-// Vercel Cron sends GET, manual triggers use POST
 export async function GET(req: NextRequest) {
   return handleSync(req);
 }
@@ -20,40 +19,7 @@ async function handleSync(req: NextRequest) {
 
   try {
     const events = await fetchEventbriteEvents();
-    const supabase = getServiceClient();
-
-    let synced = 0;
-    let skipped = 0;
-    const errors: any[] = [];
-
-    for (const event of events) {
-      // Check if event already exists
-      const { data: existing } = await supabase
-        .from("events")
-        .select("id")
-        .eq("source_platform", event.source_platform)
-        .eq("source_id", event.source_id)
-        .maybeSingle();
-
-      let error;
-      if (existing) {
-        ({ error } = await supabase
-          .from("events")
-          .update(event)
-          .eq("id", existing.id));
-      } else {
-        ({ error } = await supabase.from("events").insert(event));
-      }
-
-      if (error) {
-        errors.push({ event_title: event.title, source_id: event.source_id, error });
-        skipped++;
-      } else {
-        synced++;
-      }
-    }
-
-    // Mark duplicate title+organizer events as recurring
+    const { synced, skipped, errors } = await upsertEvents(events);
     await markDuplicatesRecurring();
 
     return NextResponse.json({
@@ -64,9 +30,6 @@ async function handleSync(req: NextRequest) {
     });
   } catch (error) {
     console.error("Eventbrite sync error:", error);
-    return NextResponse.json(
-      { error: "Sync failed" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Sync failed" }, { status: 500 });
   }
 }

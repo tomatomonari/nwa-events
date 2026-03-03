@@ -40,6 +40,12 @@ export default function AdminPage() {
   const [calendarSlug, setCalendarSlug] = useState("");
   const [calendarName, setCalendarName] = useState("");
   const [calendarLoading, setCalendarLoading] = useState(false);
+  const [calendarAdding, setCalendarAdding] = useState(false);
+  const [calendarMessage, setCalendarMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  // Sync state
+  const [syncLoading, setSyncLoading] = useState<string | null>(null);
+  const [syncResults, setSyncResults] = useState<Record<string, { synced: number; skipped: number } | { error: string }> | null>(null);
 
   // Meetup groups state
   const [meetupGroups, setMeetupGroups] = useState<MeetupGroup[]>([]);
@@ -169,21 +175,56 @@ export default function AdminPage() {
   async function addCalendar(e: React.FormEvent) {
     e.preventDefault();
     if (!calendarSlug.trim()) return;
-    const res = await fetch("/api/admin/calendars", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-admin-password": password,
-      },
-      body: JSON.stringify({ slug: calendarSlug, name: calendarName || null }),
-    });
-    if (res.ok) {
-      setCalendarSlug("");
-      setCalendarName("");
-      fetchCalendars();
-    } else {
+    setCalendarAdding(true);
+    setCalendarMessage(null);
+    try {
+      const res = await fetch("/api/admin/calendars", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-password": password,
+        },
+        body: JSON.stringify({ slug: calendarSlug, name: calendarName || null }),
+      });
       const data = await res.json();
-      alert(data.error || "Failed to add calendar");
+      if (res.ok) {
+        const syncInfo = data.sync?.synced ? ` Synced ${data.sync.synced} events.` : "";
+        setCalendarMessage({ type: "success", text: `Added "${data.calendar.slug}".${syncInfo}` });
+        setCalendarSlug("");
+        setCalendarName("");
+        fetchCalendars();
+      } else {
+        setCalendarMessage({ type: "error", text: data.error || "Failed to add calendar" });
+      }
+    } catch {
+      setCalendarMessage({ type: "error", text: "Network error" });
+    } finally {
+      setCalendarAdding(false);
+    }
+  }
+
+  async function triggerSync(source?: string) {
+    setSyncLoading(source || "all");
+    setSyncResults(null);
+    try {
+      const res = await fetch("/api/admin/sync", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-password": password,
+        },
+        body: JSON.stringify(source ? { source } : {}),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSyncResults(data.results);
+      } else {
+        setSyncResults({ error: { error: "Sync request failed" } } as any);
+      }
+    } catch {
+      setSyncResults({ error: { error: "Network error" } } as any);
+    } finally {
+      setSyncLoading(null);
     }
   }
 
@@ -295,6 +336,46 @@ export default function AdminPage() {
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10">
       <h1 className="text-2xl font-bold mb-6">Admin Dashboard</h1>
 
+      {/* Sync Now */}
+      <div className="mb-8 p-4 rounded-xl border border-border bg-background">
+        <h2 className="text-sm font-bold mb-3">Sync Now</h2>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => triggerSync()}
+            disabled={!!syncLoading}
+            className="px-3 py-1.5 text-xs font-medium rounded-lg bg-accent text-white hover:bg-accent/90 transition-colors disabled:opacity-50"
+          >
+            {syncLoading === "all" ? "Syncing all..." : "Sync All Sources"}
+          </button>
+          {(["luma", "meetup", "eventbrite", "hogsync"] as const).map((s) => (
+            <button
+              key={s}
+              onClick={() => triggerSync(s)}
+              disabled={!!syncLoading}
+              className="px-3 py-1.5 text-xs font-medium rounded-lg bg-muted text-foreground hover:bg-border transition-colors disabled:opacity-50 capitalize"
+            >
+              {syncLoading === s ? `Syncing ${s}...` : s}
+            </button>
+          ))}
+        </div>
+        {syncResults && (
+          <div className="mt-3 text-xs space-y-1">
+            {Object.entries(syncResults).map(([source, result]) => (
+              <div key={source}>
+                <span className="font-medium capitalize">{source}:</span>{" "}
+                {"error" in result ? (
+                  <span className="text-red-600">{result.error}</span>
+                ) : (
+                  <span className="text-green-700">
+                    {result.synced} synced, {result.skipped} skipped
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Filter tabs */}
       <div className="flex gap-2 mb-6">
         {(["pending", "approved", "rejected"] as const).map((s) => (
@@ -375,28 +456,37 @@ export default function AdminPage() {
         <h2 className="text-lg font-bold mb-4">Luma Calendars</h2>
 
         {/* Add calendar form */}
-        <form onSubmit={addCalendar} className="flex gap-2 mb-4">
+        <form onSubmit={addCalendar} className="flex gap-2 mb-2">
           <input
             type="text"
             placeholder="Slug or Luma URL"
             value={calendarSlug}
             onChange={(e) => setCalendarSlug(e.target.value)}
-            className="flex-1 px-3 py-2 text-sm rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-accent/30"
+            disabled={calendarAdding}
+            className="flex-1 px-3 py-2 text-sm rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-accent/30 disabled:opacity-50"
           />
           <input
             type="text"
             placeholder="Display name (optional)"
             value={calendarName}
             onChange={(e) => setCalendarName(e.target.value)}
-            className="flex-1 px-3 py-2 text-sm rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-accent/30"
+            disabled={calendarAdding}
+            className="flex-1 px-3 py-2 text-sm rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-accent/30 disabled:opacity-50"
           />
           <button
             type="submit"
-            className="px-4 py-2 text-sm font-medium rounded-lg bg-accent text-white hover:bg-accent/90 transition-colors"
+            disabled={calendarAdding}
+            className="px-4 py-2 text-sm font-medium rounded-lg bg-accent text-white hover:bg-accent/90 transition-colors disabled:opacity-50 whitespace-nowrap"
           >
-            Add
+            {calendarAdding ? "Validating & syncing..." : "Add"}
           </button>
         </form>
+        {calendarMessage && (
+          <p className={`text-xs mb-4 ${calendarMessage.type === "success" ? "text-green-700" : "text-red-600"}`}>
+            {calendarMessage.text}
+          </p>
+        )}
+        {!calendarMessage && <div className="mb-4" />}
 
         {/* Calendar list */}
         {calendarLoading ? (

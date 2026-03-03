@@ -53,52 +53,72 @@ async function getCalendarSlugs(): Promise<string[]> {
   return FALLBACK_CALENDARS;
 }
 
+export async function fetchLumaCalendarEvents(
+  slug: string
+): Promise<{ events: LumaEventWithHost[]; calendarName?: string }> {
+  const url = `https://luma.com/${slug.trim()}`;
+  const res = await fetch(url, {
+    headers: {
+      "User-Agent":
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    },
+  });
+
+  if (!res.ok) {
+    throw new Error(`Luma returned ${res.status} for slug "${slug}"`);
+  }
+
+  const html = await res.text();
+
+  const jsonMatch = html.match(
+    /<script id="__NEXT_DATA__" type="application\/json">(.*?)<\/script>/s
+  );
+  if (!jsonMatch) {
+    throw new Error(`No __NEXT_DATA__ found for slug "${slug}" — not a valid Luma calendar`);
+  }
+
+  const pageData = JSON.parse(jsonMatch[1]);
+  const pageDataRoot = pageData?.props?.pageProps?.initialData?.data;
+
+  if (!pageDataRoot?.calendar) {
+    throw new Error(`No calendar data found for slug "${slug}" — not a valid Luma calendar`);
+  }
+
+  const calendarName = pageDataRoot.calendar.name as string | undefined;
+  const items = pageDataRoot.featured_items || [];
+  const events: LumaEventWithHost[] = [];
+
+  for (const entry of items) {
+    if (entry.event) {
+      events.push({
+        event: entry.event as LumaEvent,
+        hosts: (entry.hosts || []) as LumaHost[],
+      });
+    }
+  }
+
+  return { events, calendarName };
+}
+
+export async function validateLumaSlug(
+  slug: string
+): Promise<{ valid: boolean; calendarName?: string; eventCount: number }> {
+  try {
+    const { events, calendarName } = await fetchLumaCalendarEvents(slug);
+    return { valid: true, calendarName, eventCount: events.length };
+  } catch {
+    return { valid: false, eventCount: 0 };
+  }
+}
+
 export async function fetchLumaEvents(): Promise<LumaEventWithHost[]> {
   const results: LumaEventWithHost[] = [];
   const calendarSlugs = await getCalendarSlugs();
 
   for (const calendarSlug of calendarSlugs) {
     try {
-      const url = `https://luma.com/${calendarSlug.trim()}`;
-      const res = await fetch(url, {
-        headers: {
-          "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        },
-      });
-
-      if (!res.ok) {
-        console.error(`Failed to fetch Luma calendar ${calendarSlug}: ${res.status}`);
-        continue;
-      }
-
-      const html = await res.text();
-
-      // Luma embeds event data in a JSON script tag
-      const jsonMatch = html.match(/<script id="__NEXT_DATA__" type="application\/json">(.*?)<\/script>/s);
-      if (!jsonMatch) {
-        console.error(`Could not find event data in Luma page: ${calendarSlug}`);
-        continue;
-      }
-
-      const pageData = JSON.parse(jsonMatch[1]);
-      const pageDataRoot = pageData?.props?.pageProps?.initialData?.data;
-
-      // featured_items is a sibling of calendar, not inside it
-      const items = pageDataRoot?.featured_items || [];
-
-      if (items.length === 0) {
-        console.error(`No events found in Luma calendar: ${calendarSlug}`);
-        continue;
-      }
-
-      // Parse events from calendar items
-      for (const entry of items) {
-        if (entry.event) {
-          const event = entry.event as LumaEvent;
-          const hosts = (entry.hosts || []) as LumaHost[];
-          results.push({ event, hosts });
-        }
-      }
+      const { events } = await fetchLumaCalendarEvents(calendarSlug);
+      results.push(...events);
     } catch (err) {
       console.error(`Failed to scrape Luma calendar ${calendarSlug}:`, err);
     }
