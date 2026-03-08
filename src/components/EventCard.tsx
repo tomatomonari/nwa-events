@@ -88,7 +88,7 @@ export default function EventCard({ event }: EventCardProps) {
               <div className="mt-3 flex flex-wrap gap-1.5">
                 {event.recurring && (
                   <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-700">
-                    Recurring
+                    🔁 Recurring
                   </span>
                 )}
                 {event.signals?.map((code) => {

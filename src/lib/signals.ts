@@ -1,30 +1,30 @@
 export const SIGNAL_REGISTRY = {
   free_food: {
-    label: "Free Food",
+    label: "🍔 Free Food",
     keywords: ["free food", "lunch provided", "complimentary food", "free lunch", "free dinner", "free breakfast"],
     color: "bg-green-100 text-green-700",
     supersededBy: null,
   },
   food: {
-    label: "Food",
+    label: "🍔 Food",
     keywords: ["food", "lunch", "snacks", "pizza", "dinner", "breakfast", "catering", "light bites"],
     color: "bg-lime-100 text-lime-700",
     supersededBy: "free_food" as const,
   },
   free_drinks: {
-    label: "Free Drinks",
+    label: "🍺 Free Drinks",
     keywords: ["free drinks", "open bar", "drinks provided", "complimentary drinks", "free beer", "free wine"],
     color: "bg-purple-100 text-purple-700",
     supersededBy: null,
   },
   drinks: {
-    label: "Drinks",
+    label: "🍺 Drinks",
     keywords: ["drinks", "beer", "happy hour", "wine", "cocktails", "bar"],
     color: "bg-violet-100 text-violet-700",
     supersededBy: "free_drinks" as const,
   },
   age_21_plus: {
-    label: "21+",
+    label: "🔞 21+",
     keywords: ["21+", "21 and over", "must be 21", "ages 21"],
     color: "bg-red-100 text-red-700",
     supersededBy: null,
