@@ -13,6 +13,14 @@ interface LumaEvent {
     full_address?: string;
     place_id?: string;
   } | null;
+  geo_address_info?: {
+    city?: string;
+    address?: string;
+    full_address?: string;
+    short_address?: string;
+    city_state?: string;
+    mode?: string;
+  } | null;
   geo_latitude?: number | null;
   geo_longitude?: number | null;
   url: string;
@@ -143,13 +151,19 @@ export function lumaToEvent(item: LumaEventWithHost) {
     }
   }
 
+  // Prefer geo_address_info (richer), fall back to geo_address_json
+  const geo = event.geo_address_info || event.geo_address_json;
+  const venueName = event.geo_address_info?.address || null;
+  const fullAddress = geo?.full_address || null;
+  const locationName = venueName || fullAddress?.split(",")[0] || null;
+
   return {
     title: event.name,
     description: event.description?.slice(0, 2000) || null,
     start_date: event.start_at,
     end_date: event.end_at || null,
-    location_name: event.geo_address_json?.full_address?.split(",")[0] || null,
-    location_address: event.geo_address_json?.full_address || null,
+    location_name: locationName,
+    location_address: fullAddress,
     is_online: isOnline,
     online_url: event.meeting_url || null,
     categories: [] as string[],
@@ -162,9 +176,9 @@ export function lumaToEvent(item: LumaEventWithHost) {
     organizer_title: organizerTitle,
     organizer_company: organizerCompany,
     organizer_avatar_url: primaryHost?.avatar_url || null,
-    city: event.geo_address_json?.city
-      ? extractCity(event.geo_address_json.city, null)
-      : extractCity(event.geo_address_json?.full_address || null, null),
+    city: geo?.city
+      ? extractCity(geo.city, null)
+      : extractCity(fullAddress || null, null),
     signals: extractSignals(event.description),
     status: "approved",
   };
