@@ -53,9 +53,9 @@ async function handleDigest(req: NextRequest) {
   );
   todayCT.setHours(0, 0, 0, 0);
 
-  // Daily: today + 3 days. Weekly: 7 days.
+  // Daily: today only. Weekly: 7 days.
   const dailyEnd = new Date(todayCT);
-  dailyEnd.setDate(dailyEnd.getDate() + 4); // today + next 3 days
+  dailyEnd.setDate(dailyEnd.getDate() + 1);
 
   const weeklyEnd = new Date(todayCT);
   weeklyEnd.setDate(weeklyEnd.getDate() + 7);
@@ -91,7 +91,7 @@ async function handleDigest(req: NextRequest) {
 
       const subject =
         subscriber.cadence === "daily"
-          ? `${filtered.length} events coming up in NWA`
+          ? `${filtered.length} event${filtered.length === 1 ? "" : "s"} happening today in NWA`
           : `Your weekly NWA events digest — ${filtered.length} events`;
 
       const htmlContent = buildDigestHtml(filtered);

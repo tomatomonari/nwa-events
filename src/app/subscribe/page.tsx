@@ -140,7 +140,7 @@ export default function SubscribePage() {
             >
               <div className={`text-sm font-medium ${cadence === "daily" ? "text-accent" : ""}`}>Daily</div>
               <div className="text-xs text-muted-foreground mt-0.5">
-                Every morning, next 3 days
+                Every morning, today&apos;s events
               </div>
             </button>
           </div>
