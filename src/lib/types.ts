@@ -31,7 +31,13 @@ export interface Event {
 export interface Subscriber {
   id: string;
   email: string;
+  cadence: "daily" | "weekly";
+  categories: string[];
+  verified: boolean;
+  verification_token: string | null;
+  manage_token: string | null;
   created_at: string;
+  updated_at: string;
 }
 
 export type EventCategory =

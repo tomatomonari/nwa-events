@@ -1,4 +1,4 @@
-import NewsletterSignup from "./NewsletterSignup";
+import Link from "next/link";
 
 export default function Footer() {
   return (
@@ -17,9 +17,14 @@ export default function Footer() {
           <div>
             <h4 className="text-sm font-semibold mb-3">Stay in the loop</h4>
             <p className="text-sm text-muted-foreground mb-3">
-              Get a weekly digest of upcoming events.
+              Get a daily or weekly digest of upcoming events.
             </p>
-            <NewsletterSignup />
+            <Link
+              href="/subscribe"
+              className="inline-block px-4 py-2 text-sm font-medium rounded-lg bg-accent text-white hover:bg-accent/90 transition-colors"
+            >
+              Subscribe
+            </Link>
           </div>
         </div>
         <div className="mt-8 pt-6 border-t border-border text-xs text-muted-foreground">

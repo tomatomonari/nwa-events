@@ -11,6 +11,12 @@ export default function Header() {
         </Link>
         <nav className="flex items-center gap-6">
           <Link
+            href="/subscribe"
+            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Subscribe
+          </Link>
+          <Link
             href="/submit"
             className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
           >
