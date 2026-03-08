@@ -195,7 +195,7 @@ function ManageContent() {
             >
               <div className={`text-sm font-medium ${cadence === "weekly" ? "text-accent" : ""}`}>Weekly</div>
               <div className="text-xs text-muted-foreground mt-0.5">
-                Sunday morning, full week ahead
+                Your week at a glance, every Sunday.
               </div>
             </button>
             <button
@@ -209,10 +209,13 @@ function ManageContent() {
             >
               <div className={`text-sm font-medium ${cadence === "daily" ? "text-accent" : ""}`}>Daily</div>
               <div className="text-xs text-muted-foreground mt-0.5">
-                Every morning, today&apos;s events
+                Never miss what&apos;s happening.
               </div>
             </button>
           </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            We only send when there are events to share.
+          </p>
         </div>
 
         {/* Save */}
