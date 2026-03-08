@@ -1,4 +1,5 @@
 import { getServiceClient } from "@/lib/supabase";
+import { sendWelcomeEmail } from "@/lib/email";
 import Link from "next/link";
 
 export default async function VerifyPage({
@@ -53,6 +54,13 @@ export default async function VerifyPage({
       updated_at: new Date().toISOString(),
     })
     .eq("id", subscriber.id);
+
+  // Send welcome email
+  try {
+    await sendWelcomeEmail(subscriber.email, subscriber.cadence, subscriber.manage_token);
+  } catch {
+    // Non-blocking — verification still succeeds
+  }
 
   return (
     <div className="max-w-lg mx-auto px-4 py-16 text-center">
