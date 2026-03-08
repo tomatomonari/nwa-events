@@ -99,7 +99,7 @@ export default function SubscribePage() {
                 key={opt.value}
                 type="button"
                 onClick={() => setCategory(opt.value)}
-                className={`px-4 py-2.5 text-sm font-medium rounded-xl border transition-colors flex items-center justify-center gap-1.5 ${
+                className={`cursor-pointer px-4 py-2.5 text-sm font-medium rounded-xl border transition-colors flex items-center justify-center gap-1.5 ${
                   category === opt.value
                     ? "border-accent bg-accent-light text-accent"
                     : "border-border text-muted-foreground hover:border-accent/30"
@@ -118,7 +118,7 @@ export default function SubscribePage() {
             <button
               type="button"
               onClick={() => setCadence("weekly")}
-              className={`px-4 py-3 text-left rounded-xl border transition-colors ${
+              className={`cursor-pointer px-4 py-3 text-left rounded-xl border transition-colors ${
                 cadence === "weekly"
                   ? "border-accent bg-accent-light"
                   : "border-border hover:border-accent/30"
@@ -132,7 +132,7 @@ export default function SubscribePage() {
             <button
               type="button"
               onClick={() => setCadence("daily")}
-              className={`px-4 py-3 text-left rounded-xl border transition-colors ${
+              className={`cursor-pointer px-4 py-3 text-left rounded-xl border transition-colors ${
                 cadence === "daily"
                   ? "border-accent bg-accent-light"
                   : "border-border hover:border-accent/30"
