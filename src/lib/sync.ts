@@ -35,13 +35,22 @@ function mergeFields(
     "city",
     "online_url",
     "end_date",
+    "hosts",
   ];
 
   for (const field of fillableFields) {
     const existingVal = existing[field];
     const incomingVal = incoming[field];
 
-    if (!existingVal && incomingVal) {
+    // For array fields, treat empty arrays as empty
+    const existingEmpty = Array.isArray(existingVal)
+      ? existingVal.length === 0
+      : !existingVal;
+    const incomingHasValue = Array.isArray(incomingVal)
+      ? incomingVal.length > 0
+      : !!incomingVal;
+
+    if (existingEmpty && incomingHasValue) {
       merged[field] = incomingVal;
     } else if (
       field === "description" &&

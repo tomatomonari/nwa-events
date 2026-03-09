@@ -1,18 +1,24 @@
-import Link from "next/link";
 import { format } from "date-fns";
 import type { Event } from "@/lib/types";
 import { getSignalDef } from "@/lib/signals";
 
 interface EventCardProps {
   event: Event;
+  onClick?: (rect: DOMRect) => void;
 }
 
-export default function EventCard({ event }: EventCardProps) {
+export default function EventCard({ event, onClick }: EventCardProps) {
   const date = new Date(event.start_date);
 
   return (
-    <Link href={`/events/${event.id}`} className="block group">
-      <article className="rounded-xl border border-border bg-background p-5 hover:shadow-md hover:border-border/80 transition-all duration-200">
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={(e) => onClick?.(e.currentTarget.getBoundingClientRect())}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick?.(e.currentTarget.getBoundingClientRect()); } }}
+      className="block group h-full cursor-pointer"
+    >
+      <article className="rounded-xl border border-border bg-background p-5 hover:shadow-md hover:border-border/80 transition-all duration-200 h-full">
         <div className="flex items-start gap-4">
           {/* Date block */}
           <div className="flex-shrink-0 text-center min-w-[3rem]">
@@ -57,7 +63,7 @@ export default function EventCard({ event }: EventCardProps) {
             )}
 
             {/* Organizer */}
-            <div className="mt-3 flex items-center gap-2">
+            <div className="mt-3 flex items-start gap-2">
               <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs font-medium text-muted-foreground flex-shrink-0 overflow-hidden">
                 {event.organizer_avatar_url ? (
                   <img
@@ -69,7 +75,7 @@ export default function EventCard({ event }: EventCardProps) {
                   event.organizer_name.charAt(0).toUpperCase()
                 )}
               </div>
-              <div className="text-xs text-muted-foreground truncate">
+              <div className="text-xs text-muted-foreground">
                 <span className="font-medium text-foreground/80">
                   {event.organizer_name}
                 </span>
@@ -79,6 +85,11 @@ export default function EventCard({ event }: EventCardProps) {
                     &middot; {event.organizer_title}
                     {event.organizer_company && ` at ${event.organizer_company}`}
                   </span>
+                )}
+                {event.hosts?.length > 0 && (
+                  <div className="text-muted-foreground/70">
+                    Hosted by {event.hosts.join(", ")}
+                  </div>
                 )}
               </div>
             </div>
@@ -108,6 +119,6 @@ export default function EventCard({ event }: EventCardProps) {
           </div>
         </div>
       </article>
-    </Link>
+    </div>
   );
 }

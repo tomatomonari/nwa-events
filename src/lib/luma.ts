@@ -36,9 +36,15 @@ interface LumaHost {
   avatar_url?: string;
 }
 
+interface LumaCalendar {
+  name?: string;
+  avatar_url?: string;
+}
+
 export interface LumaEventWithHost {
   event: LumaEvent;
   hosts: LumaHost[];
+  calendar?: LumaCalendar;
 }
 
 // Fallback calendar slugs if DB table is empty
@@ -92,7 +98,11 @@ export async function fetchLumaCalendarEvents(
     throw new Error(`No calendar data found for slug "${slug}" — not a valid Luma calendar`);
   }
 
-  const calendarName = pageDataRoot.calendar.name as string | undefined;
+  const calendar: LumaCalendar = {
+    name: pageDataRoot.calendar.name,
+    avatar_url: pageDataRoot.calendar.avatar_url,
+  };
+  const calendarName = calendar.name;
   const items = pageDataRoot.featured_items || [];
   const events: LumaEventWithHost[] = [];
 
@@ -101,6 +111,7 @@ export async function fetchLumaCalendarEvents(
       events.push({
         event: entry.event as LumaEvent,
         hosts: (entry.hosts || []) as LumaHost[],
+        calendar,
       });
     }
   }
@@ -136,7 +147,7 @@ export async function fetchLumaEvents(): Promise<LumaEventWithHost[]> {
 }
 
 export function lumaToEvent(item: LumaEventWithHost) {
-  const { event, hosts } = item;
+  const { event, hosts, calendar } = item;
   const primaryHost = hosts[0];
   const isOnline = event.location_type === "online" || !!event.meeting_url;
 
@@ -157,6 +168,14 @@ export function lumaToEvent(item: LumaEventWithHost) {
   const fullAddress = geo?.full_address || null;
   const locationName = venueName || fullAddress?.split(",")[0] || null;
 
+  // Use calendar (org) name as organizer, individual hosts as hosts array
+  const orgName = calendar?.name || primaryHost?.name || "Unknown";
+  const hostNames = hosts
+    .map((h) => h.name)
+    .filter((name): name is string =>
+      !!name && name.toLowerCase() !== orgName.toLowerCase()
+    );
+
   return {
     title: event.name,
     description: event.description?.slice(0, 2000) || null,
@@ -172,14 +191,15 @@ export function lumaToEvent(item: LumaEventWithHost) {
     source_url: `https://lu.ma/${event.url}`,
     source_platform: "luma",
     source_id: event.api_id,
-    organizer_name: primaryHost?.name || "Unknown",
+    organizer_name: orgName,
     organizer_title: organizerTitle,
     organizer_company: organizerCompany,
-    organizer_avatar_url: primaryHost?.avatar_url || null,
+    organizer_avatar_url: calendar?.avatar_url || primaryHost?.avatar_url || null,
     city: geo?.city
       ? extractCity(geo.city, null)
       : extractCity(fullAddress || null, null),
     signals: extractSignals(event.description),
+    hosts: hostNames,
     status: "approved",
   };
 }

@@ -157,6 +157,11 @@ export default async function EventDetailPage({ params }: PageProps) {
               {event.organizer_company}
             </div>
           )}
+          {event.hosts?.length > 0 && (
+            <div className="text-sm text-muted-foreground">
+              Hosted by {event.hosts.join(", ")}
+            </div>
+          )}
         </div>
       </div>
 

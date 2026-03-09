@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { isToday, isThisWeek, isAfter, endOfWeek } from "date-fns";
 import type { Event, PrimaryCategory } from "@/lib/types";
 import EventCard from "./EventCard";
+import EventModal from "./EventModal";
 import CategoryFilter from "./CategoryFilter";
 
 interface EventListProps {
@@ -76,7 +77,7 @@ function SubcategoryGrid({
   );
 }
 
-function EventGroup({ title, events }: { title: string; events: Event[] }) {
+function EventGroup({ title, events, onSelectEvent }: { title: string; events: Event[]; onSelectEvent: (event: Event, rect: DOMRect) => void }) {
   if (events.length === 0) return null;
   return (
     <div>
@@ -85,7 +86,7 @@ function EventGroup({ title, events }: { title: string; events: Event[] }) {
       </h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {events.map((event) => (
-          <EventCard key={event.id} event={event} />
+          <EventCard key={event.id} event={event} onClick={(rect) => onSelectEvent(event, rect)} />
         ))}
       </div>
     </div>
@@ -95,6 +96,8 @@ function EventGroup({ title, events }: { title: string; events: Event[] }) {
 export default function EventList({ events }: EventListProps) {
   const [selectedCategory, setSelectedCategory] = useState<PrimaryCategory | null>("business");
   const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [sourceRect, setSourceRect] = useState<DOMRect | null>(null);
 
   const businessCount = useMemo(() => events.filter((e) => e.primary_category === "business").length, [events]);
   const funCount = useMemo(() => events.filter((e) => e.primary_category === "fun").length, [events]);
@@ -150,11 +153,13 @@ export default function EventList({ events }: EventListProps) {
         </div>
       ) : (
         <div className="space-y-10">
-          <EventGroup title="Today" events={today} />
-          <EventGroup title="This Week" events={thisWeek} />
-          <EventGroup title="Coming Up" events={later} />
+          <EventGroup title="Today" events={today} onSelectEvent={(e, r) => { setSelectedEvent(e); setSourceRect(r); }} />
+          <EventGroup title="This Week" events={thisWeek} onSelectEvent={(e, r) => { setSelectedEvent(e); setSourceRect(r); }} />
+          <EventGroup title="Coming Up" events={later} onSelectEvent={(e, r) => { setSelectedEvent(e); setSourceRect(r); }} />
         </div>
       )}
+
+      <EventModal event={selectedEvent} sourceRect={sourceRect} onClose={() => { setSelectedEvent(null); setSourceRect(null); }} />
     </div>
   );
 }
