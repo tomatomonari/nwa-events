@@ -8,6 +8,8 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const email = (body.email || "").toLowerCase().trim();
     const cadence = body.cadence === "daily" ? "daily" : "weekly";
+    const validDays = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+    const weekly_day = validDays.includes(body.weekly_day) ? body.weekly_day : "sunday";
     const categories: string[] = Array.isArray(body.categories)
       ? body.categories.filter((c: string) => ["business", "fun"].includes(c))
       : ["business"];
@@ -41,6 +43,7 @@ export async function POST(req: NextRequest) {
         .update({
           verification_token,
           cadence,
+          weekly_day,
           categories,
           updated_at: new Date().toISOString(),
         })
@@ -57,6 +60,7 @@ export async function POST(req: NextRequest) {
     const { error } = await supabase.from("subscribers").insert({
       email,
       cadence,
+      weekly_day,
       categories,
       verified: false,
       verification_token,

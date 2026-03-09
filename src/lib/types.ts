@@ -33,6 +33,7 @@ export interface Subscriber {
   id: string;
   email: string;
   cadence: "daily" | "weekly";
+  weekly_day: string;
   categories: string[];
   verified: boolean;
   verification_token: string | null;

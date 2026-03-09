@@ -1,4 +1,4 @@
-import { extractCity } from "./city";
+import { extractCity, NWA_CITIES } from "./city";
 import { extractSignals } from "./signals";
 import { getServiceClient } from "./supabase";
 
@@ -70,7 +70,10 @@ async function getCalendarSlugs(): Promise<string[]> {
 export async function fetchLumaCalendarEvents(
   slug: string
 ): Promise<{ events: LumaEventWithHost[]; calendarName?: string }> {
-  const url = `https://luma.com/${slug.trim()}`;
+  const trimmed = slug.trim();
+  const url = trimmed.startsWith("cal-")
+    ? `https://luma.com/calendar/${trimmed}`
+    : `https://luma.com/${trimmed}`;
   const res = await fetch(url, {
     headers: {
       "User-Agent":
@@ -92,7 +95,10 @@ export async function fetchLumaCalendarEvents(
   }
 
   const pageData = JSON.parse(jsonMatch[1]);
-  const pageDataRoot = pageData?.props?.pageProps?.initialData?.data;
+  // /calendar/cal-xxx pages put data at initialData directly, slug pages nest under initialData.data
+  const pageDataRoot =
+    pageData?.props?.pageProps?.initialData?.data ??
+    pageData?.props?.pageProps?.initialData;
 
   if (!pageDataRoot?.calendar) {
     throw new Error(`No calendar data found for slug "${slug}" — not a valid Luma calendar`);
@@ -140,6 +146,145 @@ export async function fetchLumaEvents(): Promise<LumaEventWithHost[]> {
       results.push(...events);
     } catch (err) {
       console.error(`Failed to scrape Luma calendar ${calendarSlug}:`, err);
+    }
+  }
+
+  return results;
+}
+
+// NWA city filter for discover API results
+function isNwaCity(cityStr: string | undefined | null): boolean {
+  if (!cityStr) return false;
+  const lower = cityStr.toLowerCase();
+  return NWA_CITIES.some((c) => lower.includes(c.toLowerCase()));
+}
+
+export async function validateLumaUsername(
+  username: string
+): Promise<{ valid: boolean; name?: string; userApiId?: string }> {
+  try {
+    const url = `https://lu.ma/user/${username.trim()}`;
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      },
+    });
+
+    if (!res.ok) return { valid: false };
+
+    const html = await res.text();
+    const jsonMatch = html.match(
+      /<script id="__NEXT_DATA__" type="application\/json">(.*?)<\/script>/s
+    );
+    if (!jsonMatch) return { valid: false };
+
+    const pageData = JSON.parse(jsonMatch[1]);
+    const userData = pageData?.props?.pageProps?.initialData?.data?.user;
+    if (!userData?.api_id) return { valid: false };
+
+    return {
+      valid: true,
+      name: userData.name || userData.username || username,
+      userApiId: userData.api_id,
+    };
+  } catch {
+    return { valid: false };
+  }
+}
+
+export async function fetchLumaPersonEvents(
+  userApiId: string,
+  personName?: string
+): Promise<LumaEventWithHost[]> {
+  const results: LumaEventWithHost[] = [];
+  let cursor: string | null = null;
+  const nameLower = personName?.toLowerCase();
+
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const params = new URLSearchParams({
+      user_api_id: userApiId,
+      pagination_limit: "50",
+    });
+    if (cursor) params.set("pagination_cursor", cursor);
+
+    const url = `https://api.lu.ma/discover/get-paginated-events?${params}`;
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      },
+    });
+
+    if (!res.ok) break;
+
+    const data = await res.json();
+    const entries = data?.entries || [];
+    if (entries.length === 0) break;
+
+    for (const entry of entries) {
+      const event = entry.event as LumaEvent | undefined;
+      if (!event) continue;
+
+      // Filter to NWA cities
+      const city =
+        event.geo_address_info?.city || event.geo_address_json?.city;
+      if (!isNwaCity(city)) continue;
+
+      // The discover API returns all nearby events, not just hosted ones.
+      // Filter to events where this person is actually a host.
+      if (nameLower) {
+        const hosts = (entry.hosts || []) as LumaHost[];
+        const isHost = hosts.some(
+          (h) => h.name && h.name.toLowerCase() === nameLower
+        );
+        if (!isHost) continue;
+      }
+
+      results.push({
+        event,
+        hosts: (entry.hosts || []) as LumaHost[],
+        calendar: entry.calendar
+          ? {
+              name: entry.calendar.name,
+              avatar_url: entry.calendar.avatar_url,
+            }
+          : undefined,
+      });
+    }
+
+    if (!data.has_more) break;
+    cursor = data.next_cursor;
+  }
+
+  return results;
+}
+
+export async function fetchLumaTrackedPeopleEvents(): Promise<
+  LumaEventWithHost[]
+> {
+  const supabase = getServiceClient();
+  const { data: people } = await supabase
+    .from("luma_people")
+    .select("user_api_id, username, name")
+    .eq("active", true);
+
+  if (!people || people.length === 0) return [];
+
+  const results: LumaEventWithHost[] = [];
+  for (const person of people) {
+    try {
+      const events = await fetchLumaPersonEvents(
+        person.user_api_id,
+        person.name || undefined
+      );
+      results.push(...events);
+    } catch (err) {
+      console.error(
+        `Failed to fetch events for Luma person ${person.username}:`,
+        err
+      );
     }
   }
 

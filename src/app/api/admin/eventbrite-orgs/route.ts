@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceClient } from "@/lib/supabase";
-import {
-  validateLumaSlug,
-  fetchLumaCalendarEvents,
-  lumaToEvent,
-} from "@/lib/luma";
+import { validateOrganizerId, fetchEventbriteEvents } from "@/lib/eventbrite";
 import { upsertEvents } from "@/lib/sync";
 import { markDuplicatesRecurring } from "@/lib/recurring";
 
@@ -12,25 +8,31 @@ function isAdmin(req: NextRequest) {
   return req.headers.get("x-admin-password") === process.env.ADMIN_PASSWORD;
 }
 
-function extractSlug(input: string): string {
+/** Extract organizer ID from a full Eventbrite URL or raw ID */
+function extractOrganizerId(input: string): string {
   const trimmed = input.trim();
-  // Handle full URLs like https://lu.ma/slug or https://luma.com/calendar/cal-xxx
   try {
     const url = new URL(trimmed);
-    if (url.hostname === "lu.ma" || url.hostname === "luma.com" || url.hostname === "www.luma.com") {
+    if (
+      url.hostname === "www.eventbrite.com" ||
+      url.hostname === "eventbrite.com"
+    ) {
+      // URLs like https://www.eventbrite.com/o/org-name-12345
       const parts = url.pathname.split("/").filter(Boolean);
-      // /calendar/cal-xxx → use cal-xxx
-      if (parts[0] === "calendar" && parts[1]) return parts[1];
-      // /slug → use slug
-      return parts[0] || "";
+      if (parts[0] === "o" && parts[1]) {
+        // The ID is the trailing number after the last dash
+        const match = parts[1].match(/(\d+)$/);
+        if (match) return match[1];
+        return parts[1];
+      }
     }
   } catch {
-    // Not a URL — treat as raw slug
+    // Not a URL — treat as raw ID
   }
   return trimmed;
 }
 
-// GET /api/admin/calendars — list all calendars
+// GET /api/admin/eventbrite-orgs — list all orgs
 export async function GET(req: NextRequest) {
   if (!isAdmin(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -38,7 +40,7 @@ export async function GET(req: NextRequest) {
 
   const supabase = getServiceClient();
   const { data, error } = await supabase
-    .from("luma_calendars")
+    .from("eventbrite_orgs")
     .select("*")
     .order("created_at", { ascending: true });
 
@@ -46,10 +48,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ calendars: data });
+  return NextResponse.json({ orgs: data });
 }
 
-// POST /api/admin/calendars — validate, add, and auto-sync a Luma calendar
+// POST /api/admin/eventbrite-orgs — validate, add, and auto-sync an org
 export async function POST(req: NextRequest) {
   if (!isAdmin(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -58,52 +60,61 @@ export async function POST(req: NextRequest) {
   const supabase = getServiceClient();
   const body = await req.json();
 
-  const slug = extractSlug(body.slug || "");
-  if (!slug) {
-    return NextResponse.json({ error: "Slug is required" }, { status: 400 });
+  const organizerId = extractOrganizerId(body.organizer_id || "");
+  if (!organizerId) {
+    return NextResponse.json(
+      { error: "Organizer ID is required" },
+      { status: 400 }
+    );
   }
 
-  // Validate the slug is a real Luma calendar
-  const validation = await validateLumaSlug(slug);
+  // Validate via Eventbrite API
+  const validation = await validateOrganizerId(organizerId);
   if (!validation.valid) {
     return NextResponse.json(
-      { error: `Invalid Luma calendar: "${slug}" is not a valid calendar URL` },
+      {
+        error: `Invalid Eventbrite organizer: "${organizerId}" was not found`,
+      },
       { status: 422 }
     );
   }
 
-  // Auto-fill name from Luma if user didn't provide one
-  const name = body.name || validation.calendarName || null;
+  const name = body.name || validation.name || null;
 
   const { data, error } = await supabase
-    .from("luma_calendars")
-    .insert({ slug, name })
+    .from("eventbrite_orgs")
+    .insert({ organizer_id: organizerId, name })
     .select()
     .single();
 
   if (error) {
     if (error.code === "23505") {
-      return NextResponse.json({ error: "Calendar already exists" }, { status: 409 });
+      return NextResponse.json(
+        { error: "Organization already exists" },
+        { status: 409 }
+      );
     }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // Auto-sync events for this calendar
+  // Auto-sync events for this org
   let sync = { synced: 0, skipped: 0 };
   try {
-    const { events: lumaEvents } = await fetchLumaCalendarEvents(slug);
-    const events = lumaEvents.map(lumaToEvent);
+    const events = await fetchEventbriteEvents();
     const result = await upsertEvents(events);
     sync = { synced: result.synced, skipped: result.skipped };
     await markDuplicatesRecurring();
   } catch (err) {
-    console.error(`Auto-sync failed for new calendar ${slug}:`, err);
+    console.error(
+      `Auto-sync failed for new Eventbrite org ${organizerId}:`,
+      err
+    );
   }
 
-  return NextResponse.json({ calendar: data, sync }, { status: 201 });
+  return NextResponse.json({ org: data, sync }, { status: 201 });
 }
 
-// DELETE /api/admin/calendars — remove a calendar by id
+// DELETE /api/admin/eventbrite-orgs — remove an org by id
 export async function DELETE(req: NextRequest) {
   if (!isAdmin(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -113,11 +124,14 @@ export async function DELETE(req: NextRequest) {
   const body = await req.json();
 
   if (!body.id) {
-    return NextResponse.json({ error: "Calendar id is required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Organization id is required" },
+      { status: 400 }
+    );
   }
 
   const { error } = await supabase
-    .from("luma_calendars")
+    .from("eventbrite_orgs")
     .delete()
     .eq("id", body.id);
 

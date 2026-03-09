@@ -1,32 +1,8 @@
 import { extractCity } from "./city";
 import { extractSignals } from "./signals";
+import { getServiceClient } from "./supabase";
 
 const EB_API_BASE = "https://www.eventbriteapi.com/v3";
-
-// NWA cities to search for events
-const NWA_QUERIES = [
-  "Bentonville Arkansas",
-  "Fayetteville Arkansas",
-  "Rogers Arkansas",
-  "Springdale Arkansas",
-];
-
-const BUSINESS_TAGS = new Set([
-  "Business & Professional",
-  "Science & Technology",
-  "Startups & Small Business",
-  "Career",
-  "Education",
-]);
-
-function classifyPrimaryCategory(tags: any[]): "business" | "fun" {
-  for (const tag of tags || []) {
-    if (tag.prefix === "EventbriteCategory" && BUSINESS_TAGS.has(tag.display_name)) {
-      return "business";
-    }
-  }
-  return "fun";
-}
 
 // Map Eventbrite tags to our categories
 function mapCategories(tags: any[]): string[] {
@@ -54,8 +30,35 @@ function mapCategories(tags: any[]): string[] {
   return categories.length > 0 ? categories : ["other"];
 }
 
-function toISO(date: string, time: string, timezone: string): string {
-  return new Date(`${date}T${time}:00`).toISOString();
+/** Read curated organizer IDs from the eventbrite_orgs table */
+async function getOrganizerIds(): Promise<string[]> {
+  const supabase = getServiceClient();
+  const { data, error } = await supabase
+    .from("eventbrite_orgs")
+    .select("organizer_id")
+    .eq("active", true);
+
+  if (error || !data) return [];
+  return data.map((row: { organizer_id: string }) => row.organizer_id);
+}
+
+/** Validate an Eventbrite organizer ID by fetching it from the API */
+export async function validateOrganizerId(
+  organizerId: string
+): Promise<{ valid: boolean; name?: string }> {
+  const token = process.env.EVENTBRITE_API_KEY;
+  if (!token) return { valid: false };
+
+  try {
+    const res = await fetch(`${EB_API_BASE}/organizers/${organizerId}/`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return { valid: false };
+    const data = await res.json();
+    return { valid: true, name: data.name || undefined };
+  } catch {
+    return { valid: false };
+  }
 }
 
 export async function fetchEventbriteEvents() {
@@ -64,78 +67,61 @@ export async function fetchEventbriteEvents() {
 
   const headers = {
     Authorization: `Bearer ${token}`,
-    "Content-Type": "application/json",
   };
 
-  const seenIds = new Set<string>();
+  const organizerIds = await getOrganizerIds();
+  if (organizerIds.length === 0) return [];
+
   const results: any[] = [];
 
-  for (const query of NWA_QUERIES) {
+  for (const orgId of organizerIds) {
     try {
-      const res = await fetch(`${EB_API_BASE}/destination/search/`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          event_search: {
-            dates: "current_future",
-            dedup: true,
-            q: query,
-            page: 1,
-            page_size: 20,
-          },
-          "expand.destination_event": [
-            "primary_venue",
-            "image",
-            "primary_organizer",
-          ],
-        }),
-      });
+      const res = await fetch(
+        `${EB_API_BASE}/organizations/${orgId}/events/?status=live&time_filter=current_future&expand=venue,organizer`,
+        { headers }
+      );
 
       if (!res.ok) {
-        console.error(`Eventbrite search error for "${query}": ${res.status}`);
+        console.error(`Eventbrite org fetch error for "${orgId}": ${res.status}`);
         continue;
       }
 
       const data = await res.json();
-      const events = data?.events?.results || [];
+      const events = data?.events || [];
 
       for (const e of events) {
-        // Dedupe across queries
-        if (seenIds.has(e.id)) continue;
-        seenIds.add(e.id);
+        const description = (e.description?.text || e.summary || "").slice(0, 2000) || null;
 
         results.push({
-          title: e.name,
-          description: (e.summary || e.full_description || "").slice(0, 2000) || null,
-          start_date: toISO(e.start_date, e.start_time, e.timezone),
-          end_date: e.end_date && e.end_time
-            ? toISO(e.end_date, e.end_time, e.timezone)
-            : null,
-          location_name: e.primary_venue?.name || null,
+          title: e.name?.text || e.name || "",
+          description,
+          start_date: e.start?.utc || null,
+          end_date: e.end?.utc || null,
+          location_name: e.venue?.name || null,
           location_address:
-            e.primary_venue?.address?.localized_address_display || null,
-          is_online: e.is_online_event || false,
-          online_url: e.is_online_event ? e.url : null,
-          categories: mapCategories(e.tags),
-          primary_category: classifyPrimaryCategory(e.tags),
-          image_url: e.image?.url || null,
+            e.venue?.address?.localized_address_display || null,
+          is_online: e.online_event || false,
+          online_url: e.online_event ? e.url : null,
+          categories: mapCategories(e.tags || []),
+          primary_category: "business" as const,
+          image_url: e.logo?.url || null,
           source_url: e.url,
           source_platform: "eventbrite",
           source_id: e.id,
-          organizer_name: e.primary_organizer?.name || "Unknown",
+          organizer_name: e.organizer?.name || "Unknown",
           organizer_title: null,
           organizer_company: null,
           organizer_avatar_url: null,
           city: extractCity(
-            e.primary_venue?.address?.localized_address_display || null,
-            e.primary_venue?.name || null
+            e.venue?.address?.localized_address_display || null,
+            e.venue?.name || null
           ),
-          signals: extractSignals((e.summary || e.full_description || "").slice(0, 2000) || null),
+          signals: extractSignals(description),
           status: "approved",
         });
       }
     } catch (err) {
-      console.error(`Failed to fetch Eventbrite events for "${query}":`, err);
+      console.error(`Failed to fetch Eventbrite events for org "${orgId}":`, err);
     }
   }
 

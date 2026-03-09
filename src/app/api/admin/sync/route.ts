@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { fetchLumaEvents, lumaToEvent } from "@/lib/luma";
+import { fetchLumaEvents, fetchLumaTrackedPeopleEvents, lumaToEvent } from "@/lib/luma";
 import { fetchMeetupEvents, meetupToEvent } from "@/lib/meetup";
 import { fetchEventbriteEvents } from "@/lib/eventbrite";
 import { fetchHogSyncEvents, hogsyncToEvent } from "@/lib/hogsync";
 import { upsertEvents } from "@/lib/sync";
 import { markDuplicatesRecurring } from "@/lib/recurring";
 
-type Source = "luma" | "meetup" | "eventbrite" | "hogsync";
+type Source = "luma" | "luma_people" | "meetup" | "eventbrite" | "hogsync";
 
 function isAdmin(req: NextRequest) {
   return req.headers.get("x-admin-password") === process.env.ADMIN_PASSWORD;
@@ -16,6 +16,10 @@ async function syncSource(source: Source) {
   switch (source) {
     case "luma": {
       const raw = await fetchLumaEvents();
+      return upsertEvents(raw.map(lumaToEvent));
+    }
+    case "luma_people": {
+      const raw = await fetchLumaTrackedPeopleEvents();
       return upsertEvents(raw.map(lumaToEvent));
     }
     case "meetup": {
@@ -42,7 +46,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({}));
     const requestedSource = body.source as Source | undefined;
-    const allSources: Source[] = ["luma", "meetup", "eventbrite", "hogsync"];
+    const allSources: Source[] = ["luma", "luma_people", "meetup", "eventbrite", "hogsync"];
     const sources = requestedSource ? [requestedSource] : allSources;
 
     const results: Record<string, { synced: number; skipped: number } | { error: string }> = {};

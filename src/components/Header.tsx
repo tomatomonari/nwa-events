@@ -11,16 +11,16 @@ export default function Header() {
         </Link>
         <nav className="flex items-center gap-6">
           <Link
-            href="/subscribe"
-            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Subscribe
-          </Link>
-          <Link
             href="/submit"
             className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
           >
             Add Event
+          </Link>
+          <Link
+            href="/subscribe"
+            className="px-4 py-1.5 text-sm font-medium rounded-lg bg-accent text-white hover:bg-accent/90 transition-colors"
+          >
+            Subscribe
           </Link>
         </nav>
       </div>

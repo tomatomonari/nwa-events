@@ -2,10 +2,9 @@
 
 import { useState, useMemo } from "react";
 import { isToday, isThisWeek, isAfter, endOfWeek } from "date-fns";
-import type { Event, PrimaryCategory } from "@/lib/types";
+import type { Event } from "@/lib/types";
 import EventCard from "./EventCard";
 import EventModal from "./EventModal";
-import CategoryFilter from "./CategoryFilter";
 
 interface EventListProps {
   events: Event[];
@@ -32,10 +31,10 @@ function groupEvents(events: Event[]) {
 }
 
 const BUSINESS_SUBCATEGORIES = [
-  { label: "University", emoji: "🎓" },
-  { label: "Networking", emoji: "🤝" },
-  { label: "Startup", emoji: "🚀" },
-  { label: "Hackathon", emoji: "💻" },
+  { label: "University", emoji: "\u{1F393}" },
+  { label: "Networking", emoji: "\u{1F91D}" },
+  { label: "Startup", emoji: "\u{1F680}" },
+  { label: "Hackathon", emoji: "\u{1F4BB}" },
 ];
 
 const SUBCATEGORY_FILTERS: Record<string, (e: Event) => boolean> = {
@@ -94,58 +93,36 @@ function EventGroup({ title, events, onSelectEvent }: { title: string; events: E
 }
 
 export default function EventList({ events }: EventListProps) {
-  const [selectedCategory, setSelectedCategory] = useState<PrimaryCategory | null>("business");
   const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [sourceRect, setSourceRect] = useState<DOMRect | null>(null);
 
-  const businessCount = useMemo(() => events.filter((e) => e.primary_category === "business").length, [events]);
-  const funCount = useMemo(() => events.filter((e) => e.primary_category === "fun").length, [events]);
-
   const filtered = useMemo(() => {
-    let result = events;
-    if (selectedCategory) {
-      result = result.filter((e) => e.primary_category === selectedCategory);
-    }
     if (selectedSubcategory && SUBCATEGORY_FILTERS[selectedSubcategory]) {
-      result = result.filter(SUBCATEGORY_FILTERS[selectedSubcategory]);
+      return events.filter(SUBCATEGORY_FILTERS[selectedSubcategory]);
     }
-    return result;
-  }, [events, selectedCategory, selectedSubcategory]);
+    return events;
+  }, [events, selectedSubcategory]);
 
   const { today, thisWeek, later } = useMemo(() => groupEvents(filtered), [filtered]);
 
   return (
     <div>
-      <div className="flex items-start justify-between mb-10">
-        <div>
-          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">
-            What&apos;s happening in NWA
-          </h1>
-          <p className="mt-2 text-muted-foreground text-lg">
-            {selectedCategory === "fun"
-              ? "Live music, food, art, outdoors \u2014 the good stuff."
-              : selectedCategory === "business"
-                ? "Networking, tech, startups, career \u2014 all in one place."
-                : "Everything happening around Northwest Arkansas."}
-          </p>
-        </div>
-        <CategoryFilter
-          selected={selectedCategory}
-          onChange={setSelectedCategory}
-          businessCount={businessCount}
-          funCount={funCount}
-        />
+      <div className="mb-10">
+        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">
+          What&apos;s happening in NWA
+        </h1>
+        <p className="mt-2 text-muted-foreground text-lg">
+          Networking, tech, startups, career &mdash; all in one place.
+        </p>
       </div>
 
-      {selectedCategory === "business" && (
-        <SubcategoryGrid
-          selected={selectedSubcategory}
-          onToggle={(label) =>
-            setSelectedSubcategory((prev) => (prev === label ? null : label))
-          }
-        />
-      )}
+      <SubcategoryGrid
+        selected={selectedSubcategory}
+        onToggle={(label) =>
+          setSelectedSubcategory((prev) => (prev === label ? null : label))
+        }
+      />
 
       {filtered.length === 0 ? (
         <div className="text-center py-16">

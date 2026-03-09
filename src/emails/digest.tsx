@@ -43,16 +43,21 @@ export function buildDigestHtml(events: Event[]): string {
 
     for (const event of dayEvents) {
       const time = formatTime(event.start_date);
-      const location = event.location_name || (event.is_online ? "Online" : "");
+      const locationParts = [event.location_name, event.location_address].filter(Boolean);
+      const location = locationParts.length > 0 ? locationParts.join(", ") : (event.is_online ? "Online" : "");
       const link = event.source_url || "#";
+      const hosts = event.hosts && event.hosts.length > 0 ? event.hosts.join(", ") : null;
 
       html += `
-        <div style="margin-bottom: 16px; padding-left: 12px;">
+        <div style="margin-bottom: 20px; padding-left: 12px;">
           <a href="${link}" style="font-size: 15px; font-weight: 600; color: #1a1a1a; text-decoration: none;">
             ${escapeHtml(event.title)}
           </a>
-          <div style="font-size: 13px; color: #6b6560; margin-top: 2px;">
-            ${time}${location ? ` &middot; ${escapeHtml(location)}` : ""}${event.organizer_name ? ` &middot; ${escapeHtml(event.organizer_name)}` : ""}
+          <div style="font-size: 13px; color: #6b6560; margin-top: 4px; line-height: 1.6;">
+            &#128339; ${time}<br/>
+            ${location ? `&#128205; ${escapeHtml(location)}<br/>` : ""}
+            ${event.organizer_name ? `<span style="color: #6b6560;">Hosted by:</span> ${escapeHtml(event.organizer_name)}<br/>` : ""}
+            ${hosts ? `<span style="color: #6b6560;">Organizers:</span> ${escapeHtml(hosts)}` : ""}
           </div>
         </div>
       `;

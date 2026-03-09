@@ -58,7 +58,13 @@ async function getGroupIds(): Promise<string[]> {
  * p28 format: "CDT (GMT-5)" or "CST (GMT-6)"
  */
 function parseDates(p4: string, p28: string): { start: string; end: string | null } {
-  const cleaned = p4.replace(/\n/g, " ").trim();
+  const cleaned = p4
+    .replace(/<[^>]*>/g, " ")    // strip HTML tags
+    .replace(/&ndash;/g, "–")    // decode HTML entities
+    .replace(/&amp;/g, "&")
+    .replace(/\n/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 
   // Extract date part: "Thu, Mar 5, 2026" and time part: "8:30 AM – 9:30 AM"
   // Pattern: day-of-week, Month Day, Year  then  time range
@@ -84,7 +90,13 @@ function parseDates(p4: string, p28: string): { start: string; end: string | nul
     return { start: new Date().toISOString(), end: null };
   }
 
-  const [, datePart, startTime, endTime] = dateMatch;
+  const [, datePart, rawStartTime, rawEndTime] = dateMatch;
+
+  // Normalize times like "6 PM" to "6:00 PM" (Node requires minutes)
+  const normalizeTime = (t: string) =>
+    t.replace(/^(\d{1,2})\s*([AP]M)$/i, "$1:00 $2");
+  const startTime = normalizeTime(rawStartTime);
+  const endTime = normalizeTime(rawEndTime);
 
   // Parse GMT offset from p28: "CDT (GMT-5)" -> -5
   let offsetHours = -6; // default to CST

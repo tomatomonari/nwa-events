@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
 
   const { data: subscriber } = await supabase
     .from("subscribers")
-    .select("email, cadence, categories")
+    .select("email, cadence, weekly_day, categories")
     .eq("manage_token", token)
     .single();
 
@@ -25,13 +25,15 @@ export async function GET(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const { token, cadence, categories } = await req.json();
+    const { token, cadence, weekly_day, categories } = await req.json();
 
     if (!token) {
       return NextResponse.json({ error: "Token required" }, { status: 400 });
     }
 
     const validCadence = cadence === "daily" ? "daily" : "weekly";
+    const validDays = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+    const validWeeklyDay = validDays.includes(weekly_day) ? weekly_day : undefined;
     const validCategories: string[] = Array.isArray(categories)
       ? categories.filter((c: string) => ["business", "fun"].includes(c))
       : ["business"];
@@ -42,13 +44,16 @@ export async function PATCH(req: NextRequest) {
 
     const supabase = getServiceClient();
 
+    const updateData: Record<string, unknown> = {
+      cadence: validCadence,
+      categories: validCategories,
+      updated_at: new Date().toISOString(),
+    };
+    if (validWeeklyDay) updateData.weekly_day = validWeeklyDay;
+
     const { data } = await supabase
       .from("subscribers")
-      .update({
-        cadence: validCadence,
-        categories: validCategories,
-        updated_at: new Date().toISOString(),
-      })
+      .update(updateData)
       .eq("manage_token", token)
       .select("id")
       .single();

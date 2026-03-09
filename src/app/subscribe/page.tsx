@@ -3,13 +3,14 @@
 import { useState } from "react";
 import Link from "next/link";
 
-type Category = "business" | "fun" | "both";
 type Cadence = "daily" | "weekly";
+
+const DAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"] as const;
 
 export default function SubscribePage() {
   const [email, setEmail] = useState("");
-  const [category, setCategory] = useState<Category>("business");
   const [cadence, setCadence] = useState<Cadence>("weekly");
+  const [weeklyDay, setWeeklyDay] = useState("sunday");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
 
@@ -18,14 +19,11 @@ export default function SubscribePage() {
     setStatus("loading");
     setMessage("");
 
-    const categories =
-      category === "both" ? ["business", "fun"] : [category];
-
     try {
       const res = await fetch("/api/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, cadence, categories }),
+        body: JSON.stringify({ email, cadence, weekly_day: cadence === "weekly" ? weeklyDay : undefined, categories: ["business"] }),
       });
 
       const data = await res.json();
@@ -66,7 +64,7 @@ export default function SubscribePage() {
     <div className="max-w-lg mx-auto px-4 py-16">
       <h1 className="text-2xl font-semibold mb-2">Subscribe to event updates</h1>
       <p className="text-muted-foreground mb-8">
-        Get a curated digest of upcoming NWA events delivered to your inbox.
+        Get a curated digest of upcoming NWA business events delivered to your inbox.
       </p>
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -86,31 +84,6 @@ export default function SubscribePage() {
           />
         </div>
 
-        {/* Category */}
-        <div>
-          <label className="block text-sm font-medium mb-2">Events</label>
-          <div className="grid grid-cols-3 gap-2">
-            {([
-              { value: "business" as const, label: "Business", icon: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 00.75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 00-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0112 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 01-.673-.38m0 0A2.18 2.18 0 013 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 013.413-.387m7.5 0V5.25A2.25 2.25 0 0013.5 3h-3a2.25 2.25 0 00-2.25 2.25v.894m7.5 0a48.667 48.667 0 00-7.5 0" /></svg> },
-              { value: "fun" as const, label: "Fun", icon: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" /></svg> },
-              { value: "both" as const, label: "Both", icon: null },
-            ]).map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => setCategory(opt.value)}
-                className={`cursor-pointer px-4 py-2.5 text-sm font-medium rounded-xl border transition-colors flex items-center justify-center gap-1.5 ${
-                  category === opt.value
-                    ? "border-accent bg-accent-light text-accent"
-                    : "border-border text-muted-foreground hover:border-accent/30"
-                }`}
-              >
-                {opt.icon}{opt.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
         {/* Cadence */}
         <div>
           <label className="block text-sm font-medium mb-2">Frequency</label>
@@ -126,7 +99,7 @@ export default function SubscribePage() {
             >
               <div className={`text-sm font-medium ${cadence === "weekly" ? "text-accent" : ""}`}>Weekly</div>
               <div className="text-xs text-muted-foreground mt-0.5">
-                Your week at a glance, every Sunday.
+                Your week at a glance.
               </div>
             </button>
             <button
@@ -144,9 +117,29 @@ export default function SubscribePage() {
               </div>
             </button>
           </div>
-          <p className="text-xs text-muted-foreground mt-2">
-            We only send when there are events to share.
-          </p>
+          {cadence === "weekly" && (
+            <div className="mt-3">
+              <label className="block text-xs font-medium text-muted-foreground mb-1.5">
+                Deliver on
+              </label>
+              <div className="grid grid-cols-7 gap-1.5">
+                {DAYS.map((day) => (
+                  <button
+                    key={day}
+                    type="button"
+                    onClick={() => setWeeklyDay(day)}
+                    className={`py-2 text-xs rounded-lg border transition-colors capitalize ${
+                      weeklyDay === day
+                        ? "border-accent bg-accent-light text-accent font-medium"
+                        : "border-border text-muted-foreground hover:border-accent/30"
+                    }`}
+                  >
+                    {day.slice(0, 3)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Submit */}
@@ -157,6 +150,10 @@ export default function SubscribePage() {
         >
           {status === "loading" ? "Subscribing..." : "Subscribe"}
         </button>
+
+        <p className="text-xs text-muted-foreground text-center">
+          We only send when there are events to share.
+        </p>
 
         {status === "error" && message && (
           <p className="text-sm text-red-600 text-center">{message}</p>

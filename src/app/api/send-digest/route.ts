@@ -25,8 +25,7 @@ async function handleDigest(req: NextRequest) {
   const ctDay = new Intl.DateTimeFormat("en-US", {
     weekday: "long",
     timeZone: "America/Chicago",
-  }).format(now);
-  const isSunday = ctDay === "Sunday";
+  }).format(now).toLowerCase();
 
   // Get all verified subscribers
   const { data: subscribers, error: subError } = await supabase
@@ -38,9 +37,14 @@ async function handleDigest(req: NextRequest) {
     return NextResponse.json({ error: "Failed to fetch subscribers" }, { status: 500 });
   }
 
-  // Filter: daily subscribers always, weekly only on Sunday
+  // ?force=true bypasses the day check so you can test weekly cadences
+  const force = req.nextUrl.searchParams.get("force") === "true";
+
+  // Filter: daily subscribers always, weekly only on their chosen day (or when forced)
   const eligible = (subscribers as Subscriber[]).filter(
-    (s) => s.cadence === "daily" || (s.cadence === "weekly" && isSunday)
+    (s) =>
+      s.cadence === "daily" ||
+      (s.cadence === "weekly" && (force || (s.weekly_day || "sunday") === ctDay))
   );
 
   if (eligible.length === 0) {
@@ -60,11 +64,12 @@ async function handleDigest(req: NextRequest) {
   const weeklyEnd = new Date(todayCT);
   weeklyEnd.setDate(weeklyEnd.getDate() + 7);
 
-  // Fetch events for the wider range (weekly)
+  // Fetch events for the wider range (weekly) — business only
   const { data: allEvents } = await supabase
     .from("events")
     .select("*")
     .eq("status", "approved")
+    .eq("primary_category", "business")
     .gte("start_date", todayCT.toISOString())
     .lt("start_date", weeklyEnd.toISOString())
     .order("start_date", { ascending: true });
@@ -78,13 +83,8 @@ async function handleDigest(req: NextRequest) {
     try {
       // Filter by cadence window
       const endDate = subscriber.cadence === "daily" ? dailyEnd : weeklyEnd;
-      let filtered = events.filter(
+      const filtered = events.filter(
         (e) => new Date(e.start_date) < endDate
-      );
-
-      // Filter by subscriber's categories
-      filtered = filtered.filter((e) =>
-        subscriber.categories.includes(e.primary_category)
       );
 
       if (filtered.length === 0) continue;
