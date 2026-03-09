@@ -143,7 +143,13 @@ export async function fetchLumaEvents(): Promise<LumaEventWithHost[]> {
   for (const calendarSlug of calendarSlugs) {
     try {
       const { events } = await fetchLumaCalendarEvents(calendarSlug);
-      results.push(...events);
+      for (const item of events) {
+        const city =
+          item.event.geo_address_info?.city ||
+          item.event.geo_address_json?.city;
+        if (!isNwaCity(city)) continue;
+        results.push(item);
+      }
     } catch (err) {
       console.error(`Failed to scrape Luma calendar ${calendarSlug}:`, err);
     }
@@ -152,7 +158,7 @@ export async function fetchLumaEvents(): Promise<LumaEventWithHost[]> {
   return results;
 }
 
-// NWA city filter for discover API results
+// NWA city filter for calendar and discover API results
 function isNwaCity(cityStr: string | undefined | null): boolean {
   if (!cityStr) return false;
   const lower = cityStr.toLowerCase();
