@@ -14,8 +14,8 @@ export const metadata: Metadata = {
   description:
     "One place to discover networking events, tech meetups, startup events, and more in Fayetteville, Bentonville, Rogers, and all of NWA.",
   icons: {
-    icon: "/RightHog.png",
-    apple: "/RightHog.png",
+    icon: "/nwa.events.logo.png",
+    apple: "/nwa.events.logo.png",
   },
   openGraph: {
     title: "NWA.events — Discover What's Happening in Northwest Arkansas",

@@ -31,8 +31,11 @@ function groupEvents(events: Event[]) {
   return { today, thisWeek, later };
 }
 
+// --- Subcategory filter (hidden for now, flip to true to re-enable) ---
+const SHOW_SUBCATEGORY_FILTER = false;
+
 const BUSINESS_SUBCATEGORIES = [
-  { label: "University", emoji: "\u{1F393}" },
+  { label: "University", emoji: "", icon: "/RightHog.png" },
   { label: "Networking", emoji: "\u{1F91D}" },
   { label: "Startup", emoji: "\u{1F680}" },
   { label: "Hackathon", emoji: "\u{1F4BB}" },
@@ -67,7 +70,11 @@ function SubcategoryGrid({
                   : "border-border bg-background hover:border-border/80"
               }`}
             >
-              <span className="text-2xl">{sub.emoji}</span>
+              {sub.icon ? (
+                <img src={sub.icon} alt={sub.label} className="w-7 h-7 object-contain" />
+              ) : (
+                <span className="text-2xl">{sub.emoji}</span>
+              )}
               <span className="font-medium text-sm">{sub.label}</span>
             </button>
           );
@@ -76,6 +83,7 @@ function SubcategoryGrid({
     </div>
   );
 }
+// --- End subcategory filter ---
 
 function EventGroup({ title, events, onSelectEvent }: { title: string; events: Event[]; onSelectEvent: (event: Event, rect: DOMRect) => void }) {
   if (events.length === 0) return null;
@@ -99,7 +107,7 @@ export default function EventList({ events }: EventListProps) {
   const [sourceRect, setSourceRect] = useState<DOMRect | null>(null);
 
   const filtered = useMemo(() => {
-    if (selectedSubcategory && SUBCATEGORY_FILTERS[selectedSubcategory]) {
+    if (SHOW_SUBCATEGORY_FILTER && selectedSubcategory && SUBCATEGORY_FILTERS[selectedSubcategory]) {
       return events.filter(SUBCATEGORY_FILTERS[selectedSubcategory]);
     }
     return events;
@@ -118,12 +126,14 @@ export default function EventList({ events }: EventListProps) {
         </p>
       </div>
 
-      <SubcategoryGrid
-        selected={selectedSubcategory}
-        onToggle={(label) =>
-          setSelectedSubcategory((prev) => (prev === label ? null : label))
-        }
-      />
+      {SHOW_SUBCATEGORY_FILTER && (
+        <SubcategoryGrid
+          selected={selectedSubcategory}
+          onToggle={(label) =>
+            setSelectedSubcategory((prev) => (prev === label ? null : label))
+          }
+        />
+      )}
 
       {filtered.length === 0 ? (
         <div className="text-center py-16">
