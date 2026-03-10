@@ -95,7 +95,7 @@ async function handleDigest(req: NextRequest) {
           ? `${filtered.length} event${filtered.length === 1 ? "" : "s"} happening today in NWA`
           : `Your weekly NWA events digest — ${filtered.length} events`;
 
-      const htmlContent = buildDigestHtml(filtered);
+      const htmlContent = buildDigestHtml(filtered, subscriber.cadence as "daily" | "weekly");
 
       await sendDigestEmail(
         subscriber.email,

@@ -112,22 +112,15 @@ export async function sendDigestEmail(
     from: FROM,
     to: email,
     subject,
-    html: `
-      <div style="font-family: system-ui, sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 16px;">
-        <div style="margin-bottom: 24px;">
-          <span style="font-size: 20px; font-weight: 600; color: #1a1a1a;">
-            NWA<span style="color: #e8572a;">.events</span>
-          </span>
-        </div>
-        ${htmlContent}
-        <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #e8e4df; font-size: 13px; color: #6b6560;">
-          <a href="${BASE_URL}" style="color: #e8572a; text-decoration: none;">View all events</a>
-          &nbsp;&middot;&nbsp;
-          <a href="${manageUrl}" style="color: #e8572a; text-decoration: none;">Manage preferences</a>
-          &nbsp;&middot;&nbsp;
-          <a href="${unsubscribeUrl}" style="color: #6b6560; text-decoration: none;">Unsubscribe</a>
-        </div>
-      </div>
-    `,
+    html: `<div style="font-family:system-ui,sans-serif;max-width:560px;margin:0 auto;padding:32px 16px;">` +
+      `<div style="margin-bottom:24px;"><span style="font-size:20px;font-weight:600;color:#1a1a1a;">NWA<span style="color:#e8572a;">.events</span></span></div>` +
+      htmlContent +
+      `<div style="margin-top:32px;padding-top:16px;border-top:1px solid #e8e4df;font-size:13px;color:#6b6560;">` +
+      `<a href="${BASE_URL}" style="color:#e8572a;text-decoration:none;">View all events</a>` +
+      ` &middot; ` +
+      `<a href="${manageUrl}" style="color:#e8572a;text-decoration:none;">Manage preferences</a>` +
+      ` &middot; ` +
+      `<a href="${unsubscribeUrl}" style="color:#6b6560;text-decoration:none;">Unsubscribe</a>` +
+      `</div></div>`,
   });
 }
