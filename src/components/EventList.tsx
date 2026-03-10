@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import { isToday, isThisWeek, isAfter, endOfWeek } from "date-fns";
 import type { Event } from "@/lib/types";
+import { trackClick } from "@/lib/tracking";
 import EventCard from "./EventCard";
 import EventModal from "./EventModal";
 
@@ -130,9 +131,9 @@ export default function EventList({ events }: EventListProps) {
         </div>
       ) : (
         <div className="space-y-10">
-          <EventGroup title="Today" events={today} onSelectEvent={(e, r) => { setSelectedEvent(e); setSourceRect(r); }} />
-          <EventGroup title="This Week" events={thisWeek} onSelectEvent={(e, r) => { setSelectedEvent(e); setSourceRect(r); }} />
-          <EventGroup title="Coming Up" events={later} onSelectEvent={(e, r) => { setSelectedEvent(e); setSourceRect(r); }} />
+          <EventGroup title="Today" events={today} onSelectEvent={(e, r) => { trackClick(e.id, "view"); setSelectedEvent(e); setSourceRect(r); }} />
+          <EventGroup title="This Week" events={thisWeek} onSelectEvent={(e, r) => { trackClick(e.id, "view"); setSelectedEvent(e); setSourceRect(r); }} />
+          <EventGroup title="Coming Up" events={later} onSelectEvent={(e, r) => { trackClick(e.id, "view"); setSelectedEvent(e); setSourceRect(r); }} />
         </div>
       )}
 

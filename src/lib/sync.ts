@@ -1,5 +1,43 @@
 import { getServiceClient } from "./supabase";
 
+/** Wrap a sync function with timing and logging to sync_logs table */
+export async function runSyncWithLogging(
+  source: string,
+  trigger: "cron" | "manual",
+  syncFn: () => Promise<{ synced: number; skipped: number }>
+): Promise<{ synced: number; skipped: number }> {
+  const supabase = getServiceClient();
+  const start = Date.now();
+
+  try {
+    const result = await syncFn();
+    const duration = Date.now() - start;
+
+    await supabase.from("sync_logs").insert({
+      source,
+      trigger,
+      status: "success",
+      synced: result.synced,
+      skipped: result.skipped,
+      duration_ms: duration,
+    });
+
+    return result;
+  } catch (err) {
+    const duration = Date.now() - start;
+
+    await supabase.from("sync_logs").insert({
+      source,
+      trigger,
+      status: "error",
+      error_message: String(err),
+      duration_ms: duration,
+    });
+
+    throw err;
+  }
+}
+
 /** Normalize title for fuzzy matching: lowercase, strip punctuation, collapse whitespace */
 function normalizeTitle(title: string): string {
   return title

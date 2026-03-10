@@ -80,7 +80,7 @@ export async function DELETE(req: NextRequest) {
 
     const { data } = await supabase
       .from("subscribers")
-      .delete()
+      .update({ status: "unsubscribed" })
       .eq("manage_token", token)
       .select("id")
       .single();

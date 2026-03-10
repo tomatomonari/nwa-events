@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState, useCallback } from "react
 import { format } from "date-fns";
 import type { Event } from "@/lib/types";
 import { getSignalDef } from "@/lib/signals";
+import { trackClick } from "@/lib/tracking";
 
 interface EventModalProps {
   event: Event | null;
@@ -249,6 +250,7 @@ export default function EventModal({ event, sourceRect, onClose }: EventModalPro
               href={ev.source_url}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => trackClick(ev.id, "register")}
               className="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium rounded-lg bg-accent text-white hover:bg-accent/90 transition-colors"
             >
               Register on {ev.source_platform || "event page"}

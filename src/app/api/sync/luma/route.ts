@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fetchLumaEvents, lumaToEvent } from "@/lib/luma";
-import { upsertEvents } from "@/lib/sync";
+import { upsertEvents, runSyncWithLogging } from "@/lib/sync";
 import { markDuplicatesRecurring } from "@/lib/recurring";
 
 export async function GET(req: NextRequest) {
@@ -18,16 +18,17 @@ async function handleSync(req: NextRequest) {
   }
 
   try {
-    const lumaEvents = await fetchLumaEvents();
-    const events = lumaEvents.map(lumaToEvent);
-    const { synced, skipped, errors } = await upsertEvents(events);
+    const result = await runSyncWithLogging("luma", "cron", async () => {
+      const lumaEvents = await fetchLumaEvents();
+      const events = lumaEvents.map(lumaToEvent);
+      return upsertEvents(events);
+    });
     await markDuplicatesRecurring();
 
     return NextResponse.json({
-      message: `Synced ${synced} events, skipped ${skipped}`,
-      synced,
-      skipped,
-      errors: errors.length > 0 ? errors : undefined,
+      message: `Synced ${result.synced} events, skipped ${result.skipped}`,
+      synced: result.synced,
+      skipped: result.skipped,
     });
   } catch (error) {
     console.error("Luma sync error:", error);

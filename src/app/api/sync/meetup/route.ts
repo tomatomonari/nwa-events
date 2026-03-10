@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fetchMeetupEvents, meetupToEvent } from "@/lib/meetup";
-import { upsertEvents } from "@/lib/sync";
+import { upsertEvents, runSyncWithLogging } from "@/lib/sync";
 import { markDuplicatesRecurring } from "@/lib/recurring";
 
 export async function GET(req: NextRequest) {
@@ -18,19 +18,17 @@ async function handleSync(req: NextRequest) {
   }
 
   try {
-    const meetupEvents = await fetchMeetupEvents();
-    // Skip online-only events before upserting
-    const events = meetupEvents
-      .map(meetupToEvent)
-      .filter((e) => !e.is_online);
-    const { synced, skipped, errors } = await upsertEvents(events);
+    const result = await runSyncWithLogging("meetup", "cron", async () => {
+      const meetupEvents = await fetchMeetupEvents();
+      const events = meetupEvents.map(meetupToEvent).filter((e) => !e.is_online);
+      return upsertEvents(events);
+    });
     await markDuplicatesRecurring();
 
     return NextResponse.json({
-      message: `Synced ${synced} events, skipped ${skipped}`,
-      synced,
-      skipped,
-      errors: errors.length > 0 ? errors : undefined,
+      message: `Synced ${result.synced} events, skipped ${result.skipped}`,
+      synced: result.synced,
+      skipped: result.skipped,
     });
   } catch (error) {
     console.error("Meetup sync error:", error);

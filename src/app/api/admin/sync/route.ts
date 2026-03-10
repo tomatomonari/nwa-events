@@ -3,7 +3,7 @@ import { fetchLumaEvents, fetchLumaTrackedPeopleEvents, lumaToEvent } from "@/li
 import { fetchMeetupEvents, meetupToEvent } from "@/lib/meetup";
 import { fetchEventbriteEvents } from "@/lib/eventbrite";
 import { fetchHogSyncEvents, hogsyncToEvent } from "@/lib/hogsync";
-import { upsertEvents } from "@/lib/sync";
+import { upsertEvents, runSyncWithLogging } from "@/lib/sync";
 import { markDuplicatesRecurring } from "@/lib/recurring";
 
 type Source = "luma" | "luma_people" | "meetup" | "eventbrite" | "hogsync";
@@ -13,29 +13,31 @@ function isAdmin(req: NextRequest) {
 }
 
 async function syncSource(source: Source) {
-  switch (source) {
-    case "luma": {
-      const raw = await fetchLumaEvents();
-      return upsertEvents(raw.map(lumaToEvent));
+  return runSyncWithLogging(source, "manual", async () => {
+    switch (source) {
+      case "luma": {
+        const raw = await fetchLumaEvents();
+        return upsertEvents(raw.map(lumaToEvent));
+      }
+      case "luma_people": {
+        const raw = await fetchLumaTrackedPeopleEvents();
+        return upsertEvents(raw.map(lumaToEvent));
+      }
+      case "meetup": {
+        const raw = await fetchMeetupEvents();
+        const events = raw.map(meetupToEvent).filter((e) => !e.is_online);
+        return upsertEvents(events);
+      }
+      case "eventbrite": {
+        const events = await fetchEventbriteEvents();
+        return upsertEvents(events);
+      }
+      case "hogsync": {
+        const raw = await fetchHogSyncEvents();
+        return upsertEvents(raw.map(hogsyncToEvent));
+      }
     }
-    case "luma_people": {
-      const raw = await fetchLumaTrackedPeopleEvents();
-      return upsertEvents(raw.map(lumaToEvent));
-    }
-    case "meetup": {
-      const raw = await fetchMeetupEvents();
-      const events = raw.map(meetupToEvent).filter((e) => !e.is_online);
-      return upsertEvents(events);
-    }
-    case "eventbrite": {
-      const events = await fetchEventbriteEvents();
-      return upsertEvents(events);
-    }
-    case "hogsync": {
-      const raw = await fetchHogSyncEvents();
-      return upsertEvents(raw.map(hogsyncToEvent));
-    }
-  }
+  });
 }
 
 export async function POST(req: NextRequest) {

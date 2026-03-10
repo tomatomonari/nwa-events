@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fetchEventbriteEvents } from "@/lib/eventbrite";
-import { upsertEvents } from "@/lib/sync";
+import { upsertEvents, runSyncWithLogging } from "@/lib/sync";
 import { markDuplicatesRecurring } from "@/lib/recurring";
 
 export async function GET(req: NextRequest) {
@@ -18,15 +18,16 @@ async function handleSync(req: NextRequest) {
   }
 
   try {
-    const events = await fetchEventbriteEvents();
-    const { synced, skipped, errors } = await upsertEvents(events);
+    const result = await runSyncWithLogging("eventbrite", "cron", async () => {
+      const events = await fetchEventbriteEvents();
+      return upsertEvents(events);
+    });
     await markDuplicatesRecurring();
 
     return NextResponse.json({
-      message: `Synced ${synced} events, skipped ${skipped}`,
-      synced,
-      skipped,
-      errors: errors.length > 0 ? errors : undefined,
+      message: `Synced ${result.synced} events, skipped ${result.skipped}`,
+      synced: result.synced,
+      skipped: result.skipped,
     });
   } catch (error) {
     console.error("Eventbrite sync error:", error);

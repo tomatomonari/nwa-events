@@ -31,7 +31,8 @@ async function handleDigest(req: NextRequest) {
   const { data: subscribers, error: subError } = await supabase
     .from("subscribers")
     .select("*")
-    .eq("verified", true);
+    .eq("verified", true)
+    .or("status.is.null,status.eq.active");
 
   if (subError || !subscribers) {
     return NextResponse.json({ error: "Failed to fetch subscribers" }, { status: 500 });

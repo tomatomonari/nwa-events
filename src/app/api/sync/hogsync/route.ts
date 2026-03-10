@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fetchHogSyncEvents, hogsyncToEvent } from "@/lib/hogsync";
-import { upsertEvents } from "@/lib/sync";
+import { upsertEvents, runSyncWithLogging } from "@/lib/sync";
 import { markDuplicatesRecurring } from "@/lib/recurring";
 
 export async function GET(req: NextRequest) {
@@ -18,16 +18,17 @@ async function handleSync(req: NextRequest) {
   }
 
   try {
-    const hogsyncEvents = await fetchHogSyncEvents();
-    const events = hogsyncEvents.map(hogsyncToEvent);
-    const { synced, skipped, errors } = await upsertEvents(events);
+    const result = await runSyncWithLogging("hogsync", "cron", async () => {
+      const hogsyncEvents = await fetchHogSyncEvents();
+      const events = hogsyncEvents.map(hogsyncToEvent);
+      return upsertEvents(events);
+    });
     await markDuplicatesRecurring();
 
     return NextResponse.json({
-      message: `Synced ${synced} events, skipped ${skipped}`,
-      synced,
-      skipped,
-      errors: errors.length > 0 ? errors : undefined,
+      message: `Synced ${result.synced} events, skipped ${result.skipped}`,
+      synced: result.synced,
+      skipped: result.skipped,
     });
   } catch (error) {
     console.error("HogSync sync error:", error);
