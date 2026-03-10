@@ -119,10 +119,10 @@ export default function EventList({ events }: EventListProps) {
     <div>
       <div className="mb-10">
         <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">
-          What&apos;s happening in NWA
+          High-signal in-person events in NWA
         </h1>
         <p className="mt-2 text-muted-foreground text-lg">
-          Networking, tech, startups, career &mdash; all in one place.
+          Networking, startups, tech, career &mdash; curated from LinkedIn, Luma, Meetup, and more so you don&apos;t have to check them all.
         </p>
       </div>
 

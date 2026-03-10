@@ -12,7 +12,7 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "NWA.events — Discover What's Happening in Northwest Arkansas",
   description:
-    "One place to discover networking events, tech meetups, startup events, and more in Fayetteville, Bentonville, Rogers, and all of NWA.",
+    "High-signal in-person events in NWA — curated from LinkedIn, Luma, Meetup, and more so you don't have to check them all.",
   icons: {
     icon: [
       { url: "/nwa.events.logo.png", media: "(prefers-color-scheme: light)" },
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "NWA.events — Discover What's Happening in Northwest Arkansas",
     description:
-      "Networking, tech, startups, career — everything happening in NWA, in one feed.",
+      "High-signal in-person events in NWA — curated from LinkedIn, Luma, Meetup, and more so you don't have to check them all.",
     url: "https://nwa.events",
     siteName: "NWA.events",
     type: "website",

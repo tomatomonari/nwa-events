@@ -36,8 +36,7 @@ export default function Footer() {
               NWA<span className="text-accent">.events</span>
             </h3>
             <p className="text-sm text-muted-foreground max-w-sm">
-              One place to discover everything happening in Northwest Arkansas.
-              Networking, tech, startups, career — all in one feed.
+              High-signal in-person events in Northwest Arkansas — curated from LinkedIn, Luma, Meetup, and more.
             </p>
           </div>
           <div>
