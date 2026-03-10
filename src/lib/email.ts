@@ -26,9 +26,7 @@ export async function sendVerificationEmail(email: string, token: string) {
         <p style="color: #6b6560; font-size: 15px; line-height: 1.6; margin-bottom: 24px;">
           Click the button below to verify your email and start receiving event digests from NWA.events.
         </p>
-        <a href="${verifyUrl}" style="display: inline-block; background: #e8572a; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px;">
-          Confirm Subscription
-        </a>
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td style="background:#e8572a;border-radius:8px;"><a href="${verifyUrl}" style="display:inline-block;padding:12px 24px;color:#ffffff;font-size:15px;font-weight:600;text-decoration:none;">Confirm Subscription</a></td></tr></table>
         <p style="color: #6b6560; font-size: 13px; margin-top: 24px;">
           If you didn't sign up, you can safely ignore this email.
         </p>
@@ -88,9 +86,7 @@ export async function sendWelcomeEmail(
         <p style="color: #6b6560; font-size: 15px; line-height: 1.6; margin-bottom: 24px;">
           In the meantime, check out what's coming up:
         </p>
-        <a href="${BASE_URL}" style="display: inline-block; background: #e8572a; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px;">
-          Browse Events
-        </a>
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td style="background:#e8572a;border-radius:8px;"><a href="${BASE_URL}" style="display:inline-block;padding:12px 24px;color:#ffffff;font-size:15px;font-weight:600;text-decoration:none;">Browse Events</a></td></tr></table>
         <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #e8e4df; font-size: 13px; color: #6b6560;">
           <a href="${manageUrl}" style="color: #e8572a; text-decoration: none;">Manage your preferences</a> anytime.
         </div>
