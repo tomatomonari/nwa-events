@@ -51,7 +51,7 @@ export default function Footer() {
                 <input
                   type="email"
                   required
-                  placeholder="you@example.com"
+                  placeholder="Your email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="flex-1 min-w-0 px-4 py-2.5 text-sm border border-border border-r-0 rounded-l-lg bg-background hover:border-accent/40 focus:outline-none focus:border-accent transition-colors"

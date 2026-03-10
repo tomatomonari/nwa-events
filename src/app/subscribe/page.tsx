@@ -77,7 +77,7 @@ export default function SubscribePage() {
             id="email"
             type="email"
             required
-            placeholder="you@example.com"
+            placeholder="Your email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="w-full px-3 py-2.5 text-sm rounded-xl border border-border bg-background hover:border-accent/40 focus:outline-none focus:border-accent transition-colors"
