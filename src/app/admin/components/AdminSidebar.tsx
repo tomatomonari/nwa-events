@@ -1,10 +1,11 @@
 "use client";
 
-export type AdminTab = "overview" | "events" | "sources" | "subscribers" | "engagement" | "email";
+export type AdminTab = "overview" | "events" | "import" | "sources" | "subscribers" | "engagement" | "email";
 
 const TABS: { id: AdminTab; label: string }[] = [
   { id: "overview", label: "Overview" },
   { id: "events", label: "Events" },
+  { id: "import", label: "Import Event" },
   { id: "sources", label: "Sources" },
   { id: "subscribers", label: "Subscribers" },
   { id: "engagement", label: "Engagement" },

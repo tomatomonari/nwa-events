@@ -9,6 +9,7 @@ import SourcesTab from "./components/tabs/SourcesTab";
 import SubscribersTab from "./components/tabs/SubscribersTab";
 import EngagementTab from "./components/tabs/EngagementTab";
 import EmailTab from "./components/tabs/EmailTab";
+import ImportTab from "./components/tabs/ImportTab";
 
 export default function AdminPage() {
   const [authenticated, setAuthenticated] = useState(false);
@@ -59,6 +60,7 @@ export default function AdminPage() {
     <AdminShell activeTab={activeTab} onTabChange={setActiveTab}>
       {activeTab === "overview" && <OverviewTab password={password} />}
       {activeTab === "events" && <EventsTab password={password} />}
+      {activeTab === "import" && <ImportTab password={password} />}
       {activeTab === "sources" && <SourcesTab password={password} />}
       {activeTab === "subscribers" && <SubscribersTab password={password} />}
       {activeTab === "engagement" && <EngagementTab password={password} />}

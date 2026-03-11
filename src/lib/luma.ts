@@ -297,6 +297,57 @@ export async function fetchLumaTrackedPeopleEvents(): Promise<
   return results;
 }
 
+export async function fetchLumaEventByUrl(
+  eventUrl: string
+): Promise<LumaEventWithHost> {
+  // Normalize URL — accept lu.ma or luma.com links
+  let url = eventUrl.trim();
+  if (!url.startsWith("http")) url = `https://${url}`;
+  url = url.replace("lu.ma/", "luma.com/");
+
+  const res = await fetch(url, {
+    headers: {
+      "User-Agent":
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    },
+  });
+
+  if (!res.ok) {
+    throw new Error(`Luma returned ${res.status} for "${eventUrl}"`);
+  }
+
+  const html = await res.text();
+
+  const jsonMatch = html.match(
+    /<script id="__NEXT_DATA__" type="application\/json">(.*?)<\/script>/s
+  );
+  if (!jsonMatch) {
+    throw new Error("No __NEXT_DATA__ found — not a valid Luma event page");
+  }
+
+  const pageData = JSON.parse(jsonMatch[1]);
+  const root =
+    pageData?.props?.pageProps?.initialData?.data ??
+    pageData?.props?.pageProps?.initialData;
+
+  const event = root?.event as LumaEvent | undefined;
+  if (!event) {
+    throw new Error("No event data found on page — may not be an event URL");
+  }
+
+  const hosts = (root?.hosts?.map((h: any) => ({
+    name: h.name,
+    bio: h.bio,
+    avatar_url: h.avatar_url,
+  })) || []) as LumaHost[];
+
+  const calendar: LumaCalendar | undefined = root?.calendar
+    ? { name: root.calendar.name, avatar_url: root.calendar.avatar_url }
+    : undefined;
+
+  return { event, hosts, calendar };
+}
+
 export function lumaToEvent(item: LumaEventWithHost) {
   const { event, hosts, calendar } = item;
   const primaryHost = hosts[0];
