@@ -77,7 +77,7 @@ export async function fetchEventbriteEvents() {
   for (const orgId of organizerIds) {
     try {
       const res = await fetch(
-        `${EB_API_BASE}/organizations/${orgId}/events/?status=live&time_filter=current_future&expand=venue,organizer`,
+        `${EB_API_BASE}/organizers/${orgId}/events/?status=live&expand=venue,organizer`,
         { headers }
       );
 
