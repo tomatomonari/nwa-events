@@ -234,7 +234,6 @@ export default function SourcesTab({ password }: SourcesTabProps) {
             password={password}
             fields={[
               { key: "username", label: "Username", placeholder: "Username or lu.ma/user/... URL", required: true },
-              { key: "name", label: "Name", placeholder: "Display name (optional)", required: false },
             ]}
             displayKey="username"
             responseKey="people"

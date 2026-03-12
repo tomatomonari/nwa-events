@@ -200,6 +200,37 @@ export async function validateLumaUsername(
   }
 }
 
+/** Resolve a user's full name from the discover API by matching their api_id in host lists */
+export async function resolveLumaUserName(
+  userApiId: string
+): Promise<string | null> {
+  try {
+    const params = new URLSearchParams({
+      user_api_id: userApiId,
+      pagination_limit: "20",
+    });
+    const url = `https://api.lu.ma/discover/get-paginated-events?${params}`;
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    for (const entry of data?.entries || []) {
+      for (const host of entry.hosts || []) {
+        if (host.api_id === userApiId && host.name) {
+          return host.name;
+        }
+      }
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchLumaPersonEvents(
   userApiId: string,
   personName?: string

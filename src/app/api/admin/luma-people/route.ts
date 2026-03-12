@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServiceClient } from "@/lib/supabase";
 import {
   validateLumaUsername,
+  resolveLumaUserName,
   fetchLumaPersonEvents,
   lumaToEvent,
 } from "@/lib/luma";
@@ -67,12 +68,12 @@ export async function POST(req: NextRequest) {
   // If input is already a user_api_id (starts with "usr-"), use it directly
   let username = raw;
   let userApiId: string;
-  let resolvedName: string | null = body.name || null;
+  let resolvedName: string | null = null;
 
   if (raw.startsWith("usr-")) {
     userApiId = raw;
-    // Validate by hitting the discover API (0 events is fine — means the ID exists)
-    await fetchLumaPersonEvents(raw);
+    // Resolve full name from discover API host lists
+    resolvedName = await resolveLumaUserName(raw);
     username = raw;
   } else {
     const validation = await validateLumaUsername(raw);
@@ -86,7 +87,7 @@ export async function POST(req: NextRequest) {
     }
     userApiId = validation.userApiId;
     username = raw;
-    if (!resolvedName) resolvedName = validation.name || null;
+    resolvedName = validation.name || null;
   }
 
   const name = resolvedName;
