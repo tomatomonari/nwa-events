@@ -219,7 +219,6 @@ export default function SourcesTab({ password }: SourcesTabProps) {
             password={password}
             fields={[
               { key: "slug", label: "Slug", placeholder: "Slug or Luma URL", required: true },
-              { key: "name", label: "Name", placeholder: "Display name (optional)", required: false },
             ]}
             displayKey="slug"
             responseKey="calendars"
