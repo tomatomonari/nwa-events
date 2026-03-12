@@ -186,7 +186,8 @@ export async function validateLumaUsername(
     if (!jsonMatch) return { valid: false };
 
     const pageData = JSON.parse(jsonMatch[1]);
-    const userData = pageData?.props?.pageProps?.initialData?.data?.user;
+    const initialData = pageData?.props?.pageProps?.initialData;
+    const userData = initialData?.data?.user || initialData?.user;
     if (!userData?.api_id) return { valid: false };
 
     return {

@@ -14,6 +14,7 @@ async function getEvents(): Promise<Event[]> {
       .eq("status", "approved")
       .eq("primary_category", "business")
       .gte("start_date", new Date().toISOString())
+      .lte("start_date", new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString())
       .order("start_date", { ascending: true });
 
     if (error) {
