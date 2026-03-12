@@ -114,7 +114,7 @@ export async function POST(req: NextRequest) {
   // Auto-sync NWA events for this person
   let sync = { synced: 0, skipped: 0 };
   try {
-    const raw = await fetchLumaPersonEvents(userApiId);
+    const raw = await fetchLumaPersonEvents(userApiId, name || undefined);
     const events = raw.map(lumaToEvent);
     const result = await upsertEvents(events);
     sync = { synced: result.synced, skipped: result.skipped };

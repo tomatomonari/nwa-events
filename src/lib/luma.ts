@@ -241,10 +241,14 @@ export async function fetchLumaPersonEvents(
 
       // The discover API returns all nearby events, not just hosted ones.
       // Filter to events where this person is actually a host.
+      // Use startsWith to handle first-name-only DB entries (e.g. "Serafina" matches "Serafina Lalany")
       if (nameLower) {
         const hosts = (entry.hosts || []) as LumaHost[];
         const isHost = hosts.some(
-          (h) => h.name && h.name.toLowerCase() === nameLower
+          (h) =>
+            h.name &&
+            (h.name.toLowerCase().startsWith(nameLower) ||
+              nameLower.startsWith(h.name.toLowerCase()))
         );
         if (!isHost) continue;
       }
