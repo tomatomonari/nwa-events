@@ -121,9 +121,6 @@ export default function EventList({ events }: EventListProps) {
         <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">
           High-signal in-person events in NWA
         </h1>
-        <p className="mt-2 text-muted-foreground text-lg">
-          Networking, startups, tech, career &mdash; curated from LinkedIn, Luma, Meetup, and more so you don&apos;t have to check them all.
-        </p>
       </div>
 
       {SHOW_SUBCATEGORY_FILTER && (
