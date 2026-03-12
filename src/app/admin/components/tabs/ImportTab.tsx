@@ -157,6 +157,16 @@ export default function ImportTab({ password }: ImportTabProps) {
       source_url: form.source_url || null,
     };
 
+    // Get Central Time offset for a given date (handles CST/CDT)
+    function getCentralOffset(dateStr: string): string {
+      const d = new Date(dateStr + "T12:00:00Z");
+      const ct = d.toLocaleString("en-US", { timeZone: "America/Chicago", hour12: false });
+      const utcHour = d.getUTCHours();
+      const ctHour = parseInt(ct.split(", ")[1].split(":")[0]);
+      const diff = ctHour - utcHour;
+      return diff === -5 ? "-05:00" : "-06:00";
+    }
+
     try {
       let payload: Record<string, unknown>;
 
@@ -166,11 +176,12 @@ export default function ImportTab({ password }: ImportTabProps) {
         const events = Array.from({ length: recurringWeeks }, (_, i) => {
           const date = addWeeks(baseDate, i);
           const dateStr = format(date, "yyyy-MM-dd");
+          const tz = getCentralOffset(dateStr);
           const startDateTime = form.start_time
-            ? `${dateStr}T${form.start_time}:00`
-            : `${dateStr}T00:00:00`;
+            ? `${dateStr}T${form.start_time}:00${tz}`
+            : `${dateStr}T00:00:00${tz}`;
           const endDateTime = form.end_time
-            ? `${dateStr}T${form.end_time}:00`
+            ? `${dateStr}T${form.end_time}:00${tz}`
             : null;
           return {
             ...baseEvent,
@@ -181,11 +192,12 @@ export default function ImportTab({ password }: ImportTabProps) {
         payload = { events, recurring: true };
       } else {
         // Single event
+        const tz = getCentralOffset(form.start_date);
         const startDateTime = form.start_time
-          ? `${form.start_date}T${form.start_time}:00`
-          : `${form.start_date}T00:00:00`;
+          ? `${form.start_date}T${form.start_time}:00${tz}`
+          : `${form.start_date}T00:00:00${tz}`;
         const endDateTime = form.end_time
-          ? `${form.start_date}T${form.end_time}:00`
+          ? `${form.start_date}T${form.end_time}:00${tz}`
           : null;
         payload = {
           event: { ...baseEvent, start_date: startDateTime, end_date: endDateTime },
