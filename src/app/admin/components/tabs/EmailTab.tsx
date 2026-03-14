@@ -20,6 +20,8 @@ interface EmailTabProps {
 export default function EmailTab({ password }: EmailTabProps) {
   const [data, setData] = useState<EmailData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState<"daily" | "weekly" | null>(null);
+  const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
 
   useEffect(() => {
     fetch("/api/admin/stats/email", {
@@ -57,9 +59,54 @@ export default function EmailTab({ password }: EmailTabProps) {
     { stage: "Bounced", count: data.totals.bounced },
   ];
 
+  async function sendTestDigest(cadence: "daily" | "weekly") {
+    setSending(cadence);
+    setTestResult(null);
+    try {
+      const res = await fetch("/api/admin/test-digest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-admin-password": password },
+        body: JSON.stringify({ cadence }),
+      });
+      const data = await res.json();
+      setTestResult({ ok: res.ok, message: data.message || data.error });
+    } catch {
+      setTestResult({ ok: false, message: "Failed to send" });
+    } finally {
+      setSending(null);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <h2 className="text-lg font-bold">Email</h2>
+
+      {/* Test Digest */}
+      <div className="p-4 rounded-xl border border-border bg-background">
+        <h3 className="text-sm font-bold mb-1">Send Test Digest</h3>
+        <p className="text-xs text-muted-foreground mb-3">Sends a real digest email to your inbox with current events.</p>
+        <div className="flex gap-2">
+          <button
+            onClick={() => sendTestDigest("weekly")}
+            disabled={sending !== null}
+            className="px-4 py-2 text-sm font-medium rounded-lg border border-border hover:border-accent/40 transition-colors disabled:opacity-50"
+          >
+            {sending === "weekly" ? "Sending..." : "Weekly Digest"}
+          </button>
+          <button
+            onClick={() => sendTestDigest("daily")}
+            disabled={sending !== null}
+            className="px-4 py-2 text-sm font-medium rounded-lg border border-border hover:border-accent/40 transition-colors disabled:opacity-50"
+          >
+            {sending === "daily" ? "Sending..." : "Daily Digest"}
+          </button>
+        </div>
+        {testResult && (
+          <p className={`text-xs mt-2 ${testResult.ok ? "text-green-600" : "text-red-600"}`}>
+            {testResult.message}
+          </p>
+        )}
+      </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
