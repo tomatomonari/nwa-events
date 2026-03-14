@@ -159,6 +159,19 @@ export default function SubscribePage() {
           <p className="text-sm text-red-600 text-center">{message}</p>
         )}
       </form>
+
+      <div className="mt-12 pt-8 border-t border-border">
+        <p className="text-sm text-muted-foreground">
+          Prefer your calendar?{" "}
+          <a
+            href="/api/calendar"
+            className="text-accent hover:underline"
+          >
+            Add NWA Events to your calendar
+          </a>{" "}
+          and events sync automatically.
+        </p>
+      </div>
     </div>
   );
 }
