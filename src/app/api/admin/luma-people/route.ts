@@ -65,19 +65,18 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // If input is already a user_api_id (starts with "usr-"), use it directly
+  // Validate via profile page scrape — works for both usernames and usr- IDs
   let username = raw;
   let userApiId: string;
   let resolvedName: string | null = null;
 
-  if (raw.startsWith("usr-")) {
-    userApiId = raw;
-    // Resolve full name from discover API host lists
-    resolvedName = await resolveLumaUserName(raw);
-    username = raw;
-  } else {
-    const validation = await validateLumaUsername(raw);
-    if (!validation.valid || !validation.userApiId) {
+  const validation = await validateLumaUsername(raw);
+  if (!validation.valid || !validation.userApiId) {
+    // For usr- IDs, fall back to using the ID directly if profile page fails
+    if (raw.startsWith("usr-")) {
+      userApiId = raw;
+      resolvedName = await resolveLumaUserName(raw);
+    } else {
       return NextResponse.json(
         {
           error: `Invalid Luma user: "${raw}" was not found`,
@@ -85,8 +84,8 @@ export async function POST(req: NextRequest) {
         { status: 422 }
       );
     }
+  } else {
     userApiId = validation.userApiId;
-    username = raw;
     resolvedName = validation.name || null;
   }
 
