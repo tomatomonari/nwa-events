@@ -208,6 +208,8 @@ export async function resolveLumaUserName(
     const params = new URLSearchParams({
       user_api_id: userApiId,
       pagination_limit: "20",
+      latitude: "36.3729",
+      longitude: "-94.2088",
     });
     const url = `https://api.lu.ma/discover/get-paginated-events?${params}`;
     const res = await fetch(url, {
@@ -238,12 +240,18 @@ export async function fetchLumaPersonEvents(
   const results: LumaEventWithHost[] = [];
   let cursor: string | null = null;
   const nameLower = personName?.toLowerCase();
+  let totalEntries = 0;
+  let nwaCityMatches = 0;
+  let hostFilterRejects = 0;
 
   // eslint-disable-next-line no-constant-condition
   while (true) {
     const params = new URLSearchParams({
       user_api_id: userApiId,
       pagination_limit: "50",
+      // Anchor to NWA so results aren't based on server IP geolocation
+      latitude: "36.3729",
+      longitude: "-94.2088",
     });
     if (cursor) params.set("pagination_cursor", cursor);
 
@@ -255,11 +263,15 @@ export async function fetchLumaPersonEvents(
       },
     });
 
-    if (!res.ok) break;
+    if (!res.ok) {
+      console.error(`Luma discover API returned ${res.status} for user ${userApiId}`);
+      break;
+    }
 
     const data = await res.json();
     const entries = data?.entries || [];
     if (entries.length === 0) break;
+    totalEntries += entries.length;
 
     for (const entry of entries) {
       const event = entry.event as LumaEvent | undefined;
@@ -269,6 +281,7 @@ export async function fetchLumaPersonEvents(
       const city =
         event.geo_address_info?.city || event.geo_address_json?.city;
       if (!isNwaCity(city)) continue;
+      nwaCityMatches++;
 
       // The discover API returns all nearby events, not just hosted ones.
       // Filter to events where this person is actually a host.
@@ -281,7 +294,10 @@ export async function fetchLumaPersonEvents(
             (h.name.toLowerCase().startsWith(nameLower) ||
               nameLower.startsWith(h.name.toLowerCase()))
         );
-        if (!isHost) continue;
+        if (!isHost) {
+          hostFilterRejects++;
+          continue;
+        }
       }
 
       results.push({
@@ -300,6 +316,10 @@ export async function fetchLumaPersonEvents(
     cursor = data.next_cursor;
   }
 
+  console.log(
+    `Luma person ${personName || userApiId}: ${totalEntries} total events, ${nwaCityMatches} in NWA, ${hostFilterRejects} rejected by host filter, ${results.length} final`
+  );
+
   return results;
 }
 
@@ -307,10 +327,20 @@ export async function fetchLumaTrackedPeopleEvents(): Promise<
   LumaEventWithHost[]
 > {
   const supabase = getServiceClient();
-  const { data: people } = await supabase
+  const { data: people, error } = await supabase
     .from("luma_people")
     .select("user_api_id, username, name")
     .eq("active", true);
+
+  if (error) {
+    console.error("Failed to fetch luma_people from DB:", error);
+    return [];
+  }
+
+  console.log(
+    `Luma people sync: found ${people?.length || 0} active people:`,
+    people?.map((p) => `${p.username} (${p.name || "no name"}, ${p.user_api_id})`).join(", ")
+  );
 
   if (!people || people.length === 0) return [];
 
